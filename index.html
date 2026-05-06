@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DuckTone Board Planner — Custom Boards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/draggabilly/3.0.0/draggabilly.pkgd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ===== RESET & VARS ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --dark:#221C1B;
+  --dark2:#2D2A29;
+  --dark3:#3a3530;
+  --dark4:#4a453f;
+  --gold:#D8B07A;
+  --gold2:#e8c88a;
+  --gold3:rgba(216,176,122,.15);
+  --beige:#E7D3B0;
+  --offwhite:#F4F1EC;
+  --dim:#7a6f60;
+  --bdr:rgba(216,176,122,.18);
+  --bdr2:rgba(216,176,122,.35);
+  --grn:#4a9e6a;
+  --red:#c0392b;
+  --sans:'Montserrat',sans-serif;
+  --title:'Bebas Neue',sans-serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--dark)}
+body{font-family:var(--sans);color:var(--beige);display:flex;flex-direction:column}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+button{cursor:pointer;font-family:var(--sans)}
+input,select,textarea{font-family:var(--sans);outline:none}
+
+/* ===== HEADER ===== */
+#hdr{
+  height:52px;flex-shrink:0;
+  background:var(--dark2);border-bottom:1px solid var(--bdr2);
+  display:flex;align-items:center;padding:0 16px;gap:12px;z-index:200;
+}
+.logo-img{height:32px;opacity:.95}
+.logo-sep{width:1px;height:28px;background:var(--bdr)}
+.logo-text{font-family:var(--title);font-size:15px;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
+.hdr-gap{flex:1}
+.lang-wrap{display:flex;gap:2px}
+.lang-btn{
+  background:var(--dark3);border:1px solid var(--bdr);color:var(--dim);
+  font-family:var(--title);font-size:13px;letter-spacing:1px;
+  padding:3px 10px;border-radius:2px;transition:all .12s
+}
+.lang-btn.active{background:var(--gold);color:var(--dark);border-color:var(--gold)}
+.hdr-btn{
+  background:var(--dark3);border:1px solid var(--bdr);color:var(--beige);
+  font-size:12px;font-weight:500;padding:5px 14px;border-radius:2px;transition:all .12s
+}
+.hdr-btn:hover{border-color:var(--gold);color:var(--gold)}
+.hdr-btn.primary{background:var(--gold);color:var(--dark);border-color:var(--gold);font-weight:600}
+.hdr-btn.primary:hover{background:var(--gold2)}
+
+/* ===== MAIN LAYOUT ===== */
+#main{flex:1;display:flex;min-height:0}
+
+/* ===== LEFT SIDEBAR ===== */
+#lsb{
+  width:240px;flex-shrink:0;
+  background:var(--dark2);border-right:1px solid var(--bdr);
+  display:flex;flex-direction:column;overflow:hidden
+}
+.sb-tabs{display:flex;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.sb-tab{
+  flex:1;padding:8px 4px;background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--dim);font-family:var(--title);font-size:13px;letter-spacing:1px;
+  text-transform:uppercase;transition:all .12s
+}
+.sb-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.sb-search{padding:8px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.sb-search input{
+  width:100%;background:var(--dark3);border:1px solid var(--bdr2);
+  color:var(--beige);font-size:12px;padding:5px 9px;border-radius:2px
+}
+.sb-search input::placeholder{color:var(--dim)}
+.sb-body{flex:1;overflow-y:scroll;display:flex;flex-direction:column;min-height:0}
+.sb-pane{flex:1;display:flex;flex-direction:column;min-height:0}
+.sb-pane.hidden{display:none}
+
+/* pedal lib */
+.brand-group{border-bottom:1px solid rgba(216,176,122,.07)}
+.brand-hdr{
+  padding:5px 10px;font-family:var(--title);font-size:11px;letter-spacing:2px;
+  color:var(--gold);text-transform:uppercase;background:rgba(0,0,0,.2);
+  cursor:pointer;display:flex;justify-content:space-between;align-items:center
+}
+.brand-hdr:hover{background:var(--gold3)}
+.brand-items{display:none}
+.brand-items.open{display:block}
+.pedal-item{
+  padding:5px 12px 5px 16px;display:flex;align-items:center;gap:8px;
+  cursor:pointer;transition:background .08s;border-bottom:1px solid rgba(255,255,255,.02)
+}
+.pedal-item:hover{background:var(--gold3)}
+.pedal-thumb{
+  width:36px;height:28px;object-fit:contain;border-radius:2px;
+  background:rgba(0,0,0,.3);flex-shrink:0
+}
+.pedal-thumb-placeholder{
+  width:36px;height:28px;border-radius:2px;
+  background:var(--dark3);border:1px solid var(--bdr);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:7px;color:var(--dim)
+}
+.pedal-info{flex:1;min-width:0}
+.pedal-name-li{font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pedal-dims-li{font-size:8px;color:var(--dim);margin-top:1px}
+#pedal-count{font-size:9px;color:var(--dim);padding:5px 10px;text-align:center}
+
+/* board list */
+.board-item{
+  padding:8px 11px;border-bottom:1px solid var(--bdr);cursor:pointer;transition:background .1s
+}
+.board-item:hover,.board-item.active{background:var(--gold3)}
+.board-item.active{border-left:2px solid var(--gold)}
+.board-name-li{font-family:var(--title);font-size:13px;letter-spacing:1px;color:var(--beige)}
+.board-dims-li{font-size:9px;color:var(--gold);margin-top:2px}
+.board-item img{width:100%;max-height:48px;object-fit:cover;border-radius:2px;margin-top:5px;opacity:.7}
+.custom-board-form{padding:10px;border-bottom:1px solid var(--bdr)}
+.custom-board-form label{font-size:9px;color:var(--dim);display:block;margin-bottom:2px;letter-spacing:1px;text-transform:uppercase}
+.custom-board-form input{
+  width:100%;background:var(--dark3);border:1px solid var(--bdr2);
+  color:var(--beige);font-size:11px;padding:4px 7px;border-radius:2px;margin-bottom:6px
+}
+.btn-block{
+  width:100%;padding:6px;background:var(--gold);color:var(--dark);border:none;
+  font-family:var(--title);font-size:12px;letter-spacing:2px;border-radius:2px
+}
+
+/* ===== CANVAS ===== */
+#canvas-area{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--dark)}
+#canvas-toolbar{
+  height:38px;flex-shrink:0;
+  background:var(--dark2);border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;padding:0 12px;gap:8px
+}
+.tb-info{font-family:var(--title);font-size:12px;color:var(--gold);letter-spacing:1px}
+.tb-sep{flex:1}
+.tb-btn{
+  background:var(--dark3);border:1px solid var(--bdr);color:var(--beige);
+  width:28px;height:26px;display:flex;align-items:center;justify-content:center;
+  border-radius:2px;font-size:14px;transition:all .1s
+}
+.tb-btn:hover{border-color:var(--gold);color:var(--gold)}
+#zoom-lbl{font-size:10px;color:var(--gold);font-family:'Courier New',monospace;min-width:38px;text-align:center}
+.conn-mode-bar{
+  display:none;align-items:center;gap:6px;padding:0 10px;
+  background:rgba(192,57,43,.12);border:1px solid var(--red);border-radius:2px;
+  font-size:10px;color:var(--red);font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  animation:blink 1.2s ease-in-out infinite
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+
+#canvas-viewport{
+  flex:1;overflow:auto;padding:32px;
+  background:repeating-linear-gradient(
+    0deg,rgba(255,255,255,.015) 0,rgba(255,255,255,.015) 1px,transparent 1px,transparent 40px
+  ),
+  repeating-linear-gradient(
+    90deg,rgba(255,255,255,.015) 0,rgba(255,255,255,.015) 1px,transparent 1px,transparent 40px
+  ),
+  var(--dark)
+}
+
+#canvas{
+  position:relative;
+  background:#1a1510;
+  border:2px solid #3a3020;
+  border-radius:4px;
+  box-shadow:0 12px 60px rgba(0,0,0,.8),inset 0 0 100px rgba(0,0,0,.5);
+  cursor:default;
+  flex-shrink:0;
+}
+#canvas.conn-mode{cursor:crosshair}
+
+/* svg overlay */
+#conn-svg{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;z-index:10;overflow:visible
+}
+.conn-line{stroke:var(--gold);stroke-width:2;fill:none;opacity:.7;cursor:pointer;pointer-events:stroke}
+.conn-line:hover{stroke:var(--red);opacity:1}
+.conn-label{fill:var(--gold);font-size:9px;font-family:'Courier New',monospace;pointer-events:none}
+#tmp-line{stroke:var(--red);stroke-width:2;fill:none;opacity:.6;stroke-dasharray:5,4;pointer-events:none}
+
+/* pedals on canvas */
+.c-item{
+  position:absolute;z-index:5;cursor:move;
+  transition:box-shadow .1s,z-index 0s;
+}
+.c-item.is-dragging{z-index:50;box-shadow:0 8px 30px rgba(0,0,0,.7)}
+.c-item.selected{z-index:6}
+.c-item .artwork{
+  display:block;background-size:cover;background-position:center;
+  background-repeat:no-repeat;border-radius:2px;
+  position:relative;
+}
+.c-item .artwork img{width:100%;height:100%;object-fit:contain;border-radius:2px;display:block}
+/* custom pedal box */
+.c-item.custom-pedal{border-radius:3px;border:2px solid rgba(255,255,255,.2)}
+.custom-pedal .pedal-label{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  font-family:var(--title);font-size:10px;letter-spacing:1px;color:#fff;text-align:center;padding:3px
+}
+
+/* item actions */
+.c-actions{
+  position:absolute;top:-10px;right:-10px;display:none;gap:3px;z-index:20;flex-direction:column
+}
+.c-item:hover .c-actions,.c-item.selected .c-actions{display:flex}
+.c-act{
+  width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:#fff;cursor:pointer;line-height:1;
+}
+.c-act.del{background:var(--red)}
+.c-act.rot{background:var(--dark4)}
+.c-act.rot:hover{background:var(--gold);color:var(--dark)}
+
+/* ports */
+.port{
+  position:absolute;width:12px;height:12px;border-radius:50%;
+  z-index:15;cursor:crosshair;transition:transform .1s,box-shadow .1s;pointer-events:all;
+  top:50%;transform:translateY(-50%)
+}
+.port-in{right:-6px;background:var(--grn);border:2px solid rgba(74,158,106,.5)}
+.port-out{left:-6px;background:var(--red);border:2px solid rgba(192,57,43,.5)}
+.port:hover{transform:translateY(-50%) scale(1.6)}
+.conn-mode .port-in{animation:portPulse .8s ease-in-out infinite}
+@keyframes portPulse{0%,100%{box-shadow:0 0 0 0 rgba(74,158,106,.7)}50%{box-shadow:0 0 0 6px rgba(74,158,106,0)}}
+
+/* rotation */
+.c-item.r90  .artwork{transform:rotate(90deg)}
+.c-item.r180 .artwork{transform:rotate(180deg)}
+.c-item.r270 .artwork{transform:rotate(270deg)}
+
+/* ===== RIGHT PANEL ===== */
+#rpanel{
+  width:292px;flex-shrink:0;
+  background:var(--dark2);border-left:1px solid var(--bdr);
+  display:flex;flex-direction:column;overflow:hidden
+}
+#rpanel .sb-tabs{flex-shrink:0}
+.rpane{flex:1;overflow-y:scroll;padding:12px;min-height:0}
+.rpane.hidden{display:none}
+.sec-title{
+  font-family:var(--title);font-size:12px;letter-spacing:2px;color:var(--gold);
+  text-transform:uppercase;padding-bottom:5px;border-bottom:1px solid var(--bdr);
+  margin:14px 0 8px
+}
+.sec-title:first-child{margin-top:0}
+
+/* chain */
+.chain-empty{font-size:11px;color:var(--dim);text-align:center;padding:24px 0}
+.chain-row{
+  display:flex;align-items:center;gap:6px;padding:5px 7px;
+  background:var(--dark3);border-radius:2px;margin-bottom:2px
+}
+.chain-n{font-size:9px;color:var(--gold);font-family:'Courier New',monospace;width:14px;flex-shrink:0}
+.chain-nm{font-size:10px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chain-len{font-size:8px;color:var(--red);background:rgba(192,57,43,.1);padding:1px 5px;border-radius:2px;font-family:'Courier New',monospace;flex-shrink:0}
+.chain-full{
+  margin-top:10px;padding:8px;background:rgba(0,0,0,.3);border-radius:2px;border:1px solid var(--bdr);
+  font-family:'Courier New',monospace;font-size:9px;color:var(--dim);line-height:1.8;word-break:break-all
+}
+.chain-total{font-size:10px;color:var(--gold);margin-top:6px;text-align:right}
+
+/* quote form */
+.form-group{margin-bottom:8px}
+.form-label{font-size:9px;color:var(--dim);display:block;margin-bottom:3px;letter-spacing:1px;text-transform:uppercase}
+.form-input,.form-select,.form-textarea{
+  width:100%;background:var(--dark3);border:1px solid var(--bdr2);
+  color:var(--beige);font-size:11px;padding:5px 8px;border-radius:2px;transition:border-color .12s
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--gold)}
+.form-select option{background:var(--dark3)}
+.form-textarea{resize:vertical;min-height:50px}
+.chk-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.chk-row input[type=checkbox]{accent-color:var(--gold);margin-top:2px;flex-shrink:0}
+.chk-label{font-size:10px;line-height:1.4}
+.sub-field{padding-left:18px;margin-top:4px}
+.sub-field.hidden{display:none}
+
+.btn-calc{
+  width:100%;margin-top:10px;padding:8px;
+  background:none;border:1px solid var(--gold);color:var(--gold);
+  font-family:var(--title);font-size:13px;letter-spacing:2px;
+  border-radius:2px;transition:all .12s
+}
+.btn-calc:hover{background:var(--gold);color:var(--dark)}
+.btn-gen-pdf{
+  width:100%;margin-top:6px;padding:9px;
+  background:var(--gold);color:var(--dark);border:none;
+  font-family:var(--title);font-size:13px;letter-spacing:2px;
+  border-radius:2px;display:none;transition:background .12s
+}
+.btn-gen-pdf:hover{background:var(--gold2)}
+
+/* quote summary */
+.q-summary{
+  margin-top:10px;background:rgba(0,0,0,.3);border:1px solid var(--bdr2);
+  border-radius:3px;padding:10px;display:none
+}
+.q-row{display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid var(--bdr)}
+.q-row:last-child{border-bottom:none}
+.q-total{font-family:var(--title);font-size:18px;color:var(--gold);padding-top:8px;margin-top:4px}
+.q-note{font-size:9px;color:var(--red);margin-top:5px;font-style:italic}
+
+/* ===== PDF MODAL ===== */
+#pdf-modal{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);
+  z-index:1000;align-items:center;justify-content:center
+}
+#pdf-modal.open{display:flex}
+.pdf-wrap{
+  background:#fff;width:780px;max-height:92vh;overflow-y:auto;
+  border-radius:4px;padding:40px;color:#1a1a14;position:relative
+}
+.pdf-close{
+  position:absolute;top:12px;right:16px;background:none;
+  border:none;font-size:20px;cursor:pointer;color:#888
+}
+/* PDF content */
+.pdf-hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #D8B07A;padding-bottom:14px;margin-bottom:18px}
+.pdf-logo-area .pdf-brand{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:#221C1B}
+.pdf-logo-area .pdf-sub{font-size:9px;letter-spacing:4px;color:#D8B07A;text-transform:uppercase}
+.pdf-client-area{text-align:right}
+.pdf-client-name{font-size:18px;font-weight:700}
+.pdf-date-line{font-size:10px;color:#666;margin-top:3px}
+.pdf-section{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;color:#D8B07A;border-bottom:1px solid #D8B07A;padding-bottom:3px;margin:14px 0 8px;text-transform:uppercase}
+.pdf-board-img{width:100%;border:1px solid #ddd;border-radius:3px;margin-bottom:4px}
+.pdf-chain-txt{font-family:'Courier New',monospace;font-size:10px;background:#f5f4f0;padding:9px 11px;border-radius:3px;line-height:1.8;color:#333;word-break:break-all}
+.pdf-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+.pdf-tbl th{background:#221C1B;color:#D8B07A;padding:5px 9px;text-align:left;font-size:9px;letter-spacing:1px;text-transform:uppercase}
+.pdf-tbl td{padding:5px 9px;border-bottom:1px solid #eee;vertical-align:top}
+.pdf-tbl tr:last-child td{border-bottom:none}
+.pdf-total-band{display:flex;justify-content:space-between;align-items:center;background:#221C1B;padding:10px 14px;border-radius:3px;margin-top:12px}
+.pdf-total-lbl{font-size:10px;letter-spacing:2px;color:#D8B07A;text-transform:uppercase}
+.pdf-total-val{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#D8B07A}
+.pdf-cond{font-size:9px;color:#777;line-height:1.7;border-top:1px solid #eee;padding-top:10px;margin-top:14px}
+.pdf-footer{display:flex;justify-content:space-between;font-size:9px;color:#aaa;margin-top:10px;padding-top:8px;border-top:1px solid #eee}
+.pdf-actions{display:flex;gap:8px;margin-top:14px}
+.pdf-actions button{flex:1;padding:10px;border-radius:3px;font-weight:600;font-size:12px;letter-spacing:1px}
+.pdf-dl{background:#D8B07A;color:#221C1B;border:none}
+.pdf-cl{background:none;border:1px solid #ccc;color:#555}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="hdr">
+  <img src="assets/logo-gold.png" class="logo-img" alt="DuckTone" onerror="this.style.display='none'">
+  <div class="logo-sep"></div>
+  <div class="logo-text" data-i="boardPlanner">Board Planner</div>
+  <div class="hdr-gap"></div>
+  <div class="lang-wrap">
+    <button class="lang-btn active" onclick="setLang('pt')">PT</button>
+    <button class="lang-btn" onclick="setLang('en')">EN</button>
+  </div>
+  <button class="hdr-btn" onclick="clearCanvas()" data-i="clearBtn">Limpar</button>
+  <button class="hdr-btn primary" onclick="openPDF()" data-i="exportBtn">Exportar PDF</button>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT SIDEBAR -->
+  <div id="lsb">
+    <div class="sb-tabs">
+      <button class="sb-tab active" onclick="setLSTab('pedals')" id="lst-pedals" data-i="tabPedals">Pedais</button>
+      <button class="sb-tab" onclick="setLSTab('boards')" id="lst-boards" data-i="tabBoards">Boards</button>
+    </div>
+
+    <!-- PEDALS TAB -->
+    <div class="sb-pane" id="pane-pedals">
+      <div class="sb-search">
+        <input type="text" id="pedal-search" data-i-ph="searchPh" placeholder="Buscar pedal ou marca..." oninput="filterPedals(this.value)">
+      </div>
+      <div class="sb-body" id="pedal-lib"></div>
+      <div id="pedal-count"></div>
+    </div>
+
+    <!-- BOARDS TAB -->
+    <div class="sb-pane hidden" id="pane-boards">
+      <div class="sb-search">
+        <input type="text" id="board-search" data-i-ph="searchBoardPh" placeholder="Buscar board..." oninput="filterBoards(this.value)">
+      </div>
+      <div class="sb-body" id="board-lib"></div>
+      <div class="custom-board-form">
+        <label data-i="customW">Largura (cm)</label>
+        <input type="number" id="cust-w" value="60" min="10" max="300">
+        <label data-i="customH">Profundidade (cm)</label>
+        <input type="number" id="cust-h" value="30" min="5" max="200">
+        <button class="btn-block" onclick="applyCustomBoard()" data-i="applyBoard">Aplicar Board Personalizado</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CANVAS AREA -->
+  <div id="canvas-area">
+    <div id="canvas-toolbar">
+      <span class="tb-info" id="board-info">Board: 60 × 30 cm</span>
+      <button class="tb-btn" onclick="adjZoom(-0.1)" title="Zoom -">−</button>
+      <span id="zoom-lbl">100%</span>
+      <button class="tb-btn" onclick="adjZoom(0.1)" title="Zoom +">+</button>
+      <button class="tb-btn" onclick="adjZoom(0,'reset')" title="Reset zoom">⊙</button>
+      <div class="tb-sep"></div>
+      <div class="conn-mode-bar" id="conn-bar">
+        ⚡ <span data-i="connHint">Clique no INPUT de outro pedal</span> &nbsp;
+        <button class="tb-btn" onclick="cancelConn()" style="font-size:10px;width:auto;padding:0 6px" data-i="cancelConn">ESC / Cancelar</button>
+      </div>
+    </div>
+    <div id="canvas-viewport">
+      <div id="canvas">
+        <svg id="conn-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="rpanel">
+    <div class="sb-tabs">
+      <button class="sb-tab active" onclick="setRPTab('chain')" id="rst-chain" data-i="tabChain">Cadeia</button>
+      <button class="sb-tab" onclick="setRPTab('quote')" id="rst-quote" data-i="tabQuote">Orçamento</button>
+    </div>
+
+    <!-- CHAIN PANE -->
+    <div class="rpane" id="pane-chain">
+      <div class="sec-title" data-i="signalChain">Cadeia de Sinal</div>
+      <div id="chain-list"><div class="chain-empty" data-i="chainEmpty" id="chain-empty-msg">Conecte os pedais para ver a cadeia de sinal.</div></div>
+      <div class="chain-full" id="chain-full" style="display:none"></div>
+      <div class="chain-total" id="chain-total" style="display:none"></div>
+    </div>
+
+    <!-- QUOTE PANE -->
+    <div class="rpane hidden" id="pane-quote">
+      <div class="sec-title" data-i="clientSec">Cliente</div>
+      <div class="form-group">
+        <label class="form-label" data-i="clientName">Nome do cliente</label>
+        <input class="form-input" id="f-name" type="text" placeholder="Ex: João Silva">
+      </div>
+
+      <div class="sec-title" data-i="complexitySec">Tipo de Montagem</div>
+      <div class="form-group">
+        <select class="form-select" id="f-cmplx">
+          <option value="simple" data-i="optSimple">Simples — In/Out (R$80/equip)</option>
+          <option value="medium" data-i="optMedium">Média — Send/Return (R$100/equip)</option>
+          <option value="complex" data-i="optComplex">Complexa — MIDI/USB (R$120/equip)</option>
+        </select>
+      </div>
+
+      <div class="sec-title" data-i="equipSec">Equipamentos</div>
+      <div class="chk-row">
+        <input type="checkbox" id="f-src" onchange="toggleSub('sub-src',this.checked)">
+        <label for="f-src" class="chk-label" data-i="hasPSU">Cliente possui fonte de alimentação?</label>
+      </div>
+      <div class="sub-field hidden" id="sub-src">
+        <input class="form-input" id="f-src-info" type="text" data-i-ph="psuPh" placeholder="Modelo da fonte (ex: Mosky ISO-10)">
+      </div>
+
+      <div class="chk-row">
+        <input type="checkbox" id="f-usb" onchange="toggleSub('sub-usb',this.checked)">
+        <label for="f-usb" class="chk-label" data-i="needsUSB">Vai precisar de cabo USB?</label>
+      </div>
+      <div class="sub-field hidden" id="sub-usb">
+        <input class="form-input" id="f-usb-type" type="text" data-i-ph="usbTypePh" placeholder="Tipo: C, Micro-USB, etc.">
+        <div class="chk-row" style="margin-top:5px">
+          <input type="checkbox" id="f-jack">
+          <label for="f-jack" class="chk-label" data-i="needsJack">Jack fêmea USB no painel do board?</label>
+        </div>
+      </div>
+
+      <div class="sec-title" data-i="itemsOwnedSec">Itens que o cliente já possui</div>
+      <div class="form-group">
+        <textarea class="form-textarea" id="f-owned" data-i-ph="ownedPh" placeholder="Ex: Fonte Mosky ISO-10, cabo de guitarra 5m..."></textarea>
+      </div>
+
+      <div class="sec-title" data-i="itemsOrderSec">Itens a comprar / orçar</div>
+      <div class="form-group">
+        <textarea class="form-textarea" id="f-order" data-i-ph="orderPh" placeholder="Ex: Cabos patch, fonte, cabo USB..."></textarea>
+      </div>
+
+      <div class="sec-title" data-i="notesSec">Observações</div>
+      <div class="form-group">
+        <textarea class="form-textarea" id="f-notes" data-i-ph="notesPh" placeholder="Observações gerais sobre o projeto..."></textarea>
+      </div>
+
+      <button class="btn-calc" onclick="calcQuote()" data-i="calcBtn">Calcular Orçamento</button>
+      <div class="q-summary" id="q-summary"></div>
+      <button class="btn-gen-pdf" id="btn-gen-pdf" onclick="openPDF()" data-i="genPDF">Gerar PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- PDF MODAL -->
+<div id="pdf-modal">
+  <div class="pdf-wrap">
+    <button class="pdf-close" onclick="closePDF()">✕</button>
+    <div id="pdf-content"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// I18N
+// ═══════════════════════════════════════════════════════════
+const T = {
+  pt:{
+    boardPlanner:'Board Planner',clearBtn:'Limpar',exportBtn:'Exportar PDF',
+    tabPedals:'Pedais',tabBoards:'Boards',tabChain:'Cadeia',tabQuote:'Orçamento',
+    searchPh:'Buscar pedal ou marca...',searchBoardPh:'Buscar board...',
+    customW:'Largura (cm)',customH:'Profundidade (cm)',applyBoard:'Aplicar Board Personalizado',
+    connHint:'Clique no INPUT de outro pedal',cancelConn:'ESC / Cancelar',
+    signalChain:'Cadeia de Sinal',chainEmpty:'Conecte os pedais para ver a cadeia de sinal.',
+    clientSec:'Cliente',clientName:'Nome do cliente',
+    complexitySec:'Tipo de Montagem',
+    optSimple:'Simples — In/Out (R$80/equip)',optMedium:'Média — Send/Return (R$100/equip)',optComplex:'Complexa — MIDI/USB (R$120/equip)',
+    equipSec:'Equipamentos',hasPSU:'Cliente possui fonte de alimentação?',psuPh:'Modelo da fonte (ex: Mosky ISO-10)',
+    needsUSB:'Vai precisar de cabo USB?',usbTypePh:'Tipo: C, Micro-USB, etc.',needsJack:'Jack fêmea USB no painel do board?',
+    itemsOwnedSec:'Itens que o cliente já possui',ownedPh:'Ex: Fonte Mosky ISO-10, cabo de guitarra 5m...',
+    itemsOrderSec:'Itens a comprar / orçar',orderPh:'Ex: Cabos patch, fonte, cabo USB...',
+    notesSec:'Observações',notesPh:'Observações gerais sobre o projeto...',
+    calcBtn:'Calcular Orçamento',genPDF:'Gerar PDF',
+    labor:'Mão de obra',cables:'Cabos patch',toQuote:'A orçar',total:'TOTAL',
+    guitar:'Guitarra (Entrada)',amp:'Amplificador (Saída)',
+    layoutSec:'Layout do Board',chainSec:'Cadeia de Sinal',pedalsSec:'Lista de Pedais',quoteSec:'Orçamento',
+    condTitle:'Pagamento e Prazos',
+    cond:'Pagamento via Pix à vista. Produtos: 10-15 dias corridos. Produção: até 8 dias úteis (contados a partir da chegada de todos os produtos). Condições: 50% no fechamento do pedido + 50% na entrega.',
+    validity:'Validade: 15 dias',propDate:'Data',dlPDF:'Baixar PDF',close:'Fechar',
+    totalCables:'Total de cabos patch',totalEquip:'Total de equipamentos',cmplxType:'Tipo de montagem',
+    confirmClear:'Limpar o board? Todas as conexões serão removidas.',
+    inch:'pol.',cm:'cm',
+  },
+  en:{
+    boardPlanner:'Board Planner',clearBtn:'Clear',exportBtn:'Export PDF',
+    tabPedals:'Pedals',tabBoards:'Boards',tabChain:'Chain',tabQuote:'Quote',
+    searchPh:'Search pedal or brand...',searchBoardPh:'Search board...',
+    customW:'Width (cm)',customH:'Depth (cm)',applyBoard:'Apply Custom Board',
+    connHint:'Click the INPUT port on another pedal',cancelConn:'ESC / Cancel',
+    signalChain:'Signal Chain',chainEmpty:'Connect pedals to see the signal chain.',
+    clientSec:'Client',clientName:'Client name',
+    complexitySec:'Build Complexity',
+    optSimple:'Simple — In/Out ($80/equip)',optMedium:'Medium — Send/Return ($100/equip)',optComplex:'Complex — MIDI/USB ($120/equip)',
+    equipSec:'Equipment',hasPSU:'Client already has power supply?',psuPh:'Power supply model (e.g. Mosky ISO-10)',
+    needsUSB:'Will need USB cable?',usbTypePh:'Type: C, Micro-USB, etc.',needsJack:'Wants USB panel jack on board?',
+    itemsOwnedSec:'Items client already owns',ownedPh:'e.g. Mosky ISO-10, guitar cable 5m...',
+    itemsOrderSec:'Items to buy / quote',orderPh:'e.g. Patch cables, power supply, USB...',
+    notesSec:'Notes',notesPh:'General notes about the project...',
+    calcBtn:'Calculate Quote',genPDF:'Generate PDF',
+    labor:'Labor',cables:'Patch cables',toQuote:'To quote',total:'TOTAL',
+    guitar:'Guitar (Input)',amp:'Amplifier (Output)',
+    layoutSec:'Board Layout',chainSec:'Signal Chain',pedalsSec:'Pedal List',quoteSec:'Quote',
+    condTitle:'Payment & Timeline',
+    cond:'Payment via Pix (Brazil). Products: 10-15 business days. Build: up to 8 working days (starting from arrival of all products). Terms: 50% at order + 50% at delivery.',
+    validity:'Valid: 15 days',propDate:'Date',dlPDF:'Download PDF',close:'Close',
+    totalCables:'Total patch cables',totalEquip:'Total equipment',cmplxType:'Build type',
+    confirmClear:'Clear the board? All connections will be removed.',
+    inch:'in',cm:'cm',
+  }
+};
+
+let lang = 'pt';
+const i = k => T[lang][k] || k;
+
+function setLang(l) {
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === l));
+  applyI18n();
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i]').forEach(el => {
+    const key = el.dataset.i;
+    if (T[lang][key]) el.textContent = T[lang][key];
+  });
+  document.querySelectorAll('[data-i-ph]').forEach(el => {
+    const key = el.dataset.iPh;
+    if (T[lang][key]) el.placeholder = T[lang][key];
+  });
+  // selects
+  document.querySelectorAll('#f-cmplx option[data-i]').forEach(opt => {
+    const key = opt.dataset.i;
+    if (T[lang][key]) opt.textContent = T[lang][key];
+  });
+  updateBoardInfo();
+  renderChain();
+}
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const PRICE = { simple:80, medium:100, complex:120, cable:50 };
+const IMG_PATH = 'https://pedalplayground.com/public/images/pedals/';
+const BRD_PATH = 'https://pedalplayground.com/public/images/pedalboards/';
+const INCH_TO_CM = 2.54;
+const PX_PER_INCH = 32; // base scale
+
+let zoom = 1;
+let board = { name:'Custom', w:60, h:30 }; // cm
+let pedalData = [];
+let boardData = [];
+let items = [];    // { id, name, brand, image, wIn, hIn, x, y, rot, draggabilly }
+let conns = [];    // { id, from, to, lenCm }
+let connFrom = null;
+let quote = null;
+
+const uid = () => Math.random().toString(36).slice(2,9);
+const cmToPx = cm => cm / INCH_TO_CM * PX_PER_INCH * zoom;
+const inToPx = inches => inches * PX_PER_INCH * zoom;
+const pxToIn = px => px / (PX_PER_INCH * zoom);
+const inToCm = inches => Math.round(inches * INCH_TO_CM * 10) / 10;
+const pxToCm = px => Math.round(pxToIn(px) * INCH_TO_CM * 10) / 10;
+
+// ═══════════════════════════════════════════════════════════
+// LOAD DATA
+// ═══════════════════════════════════════════════════════════
+async function loadData() {
+  try {
+    const [pr, br] = await Promise.all([
+      fetch('data/pedals.json').then(r => r.json()),
+      fetch('data/pedalboards.json').then(r => r.json()),
+    ]);
+    pedalData = pr;
+    boardData = br;
+    renderPedalLib('');
+    renderBoardLib('');
+    // default board
+    if (boardData.length) {
+      const def = boardData.find(b => b.Name && b.Name.toLowerCase().includes('40')) || boardData[0];
+      if (def) applyBoardData(def);
+    }
+  } catch(e) {
+    console.warn('Could not load JSON from data/ folder. Place pedals.json and pedalboards.json in data/', e);
+    renderBoardLib('');
+    renderPedalLib('');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CANVAS & BOARD
+// ═══════════════════════════════════════════════════════════
+function renderBoardSurface() {
+  const c = document.getElementById('canvas');
+  const W = cmToPx(board.w), H = cmToPx(board.h);
+  c.style.width = W + 'px';
+  c.style.height = H + 'px';
+  const gs = PX_PER_INCH * zoom / INCH_TO_CM; // grid spacing (1cm in px)
+  c.style.backgroundImage = `
+    repeating-linear-gradient(0deg,rgba(216,176,122,.06) 0,rgba(216,176,122,.06) 1px,transparent 1px,transparent ${gs}px),
+    repeating-linear-gradient(90deg,rgba(216,176,122,.06) 0,rgba(216,176,122,.06) 1px,transparent 1px,transparent ${gs}px)
+  `;
+  document.getElementById('zoom-lbl').textContent = Math.round(zoom*100)+'%';
+  updateBoardInfo();
+  refreshAllItems();
+  renderSVG();
+}
+
+function updateBoardInfo() {
+  document.getElementById('board-info').textContent = `Board: ${board.w} × ${board.h} cm`;
+}
+
+function adjZoom(d, mode) {
+  if (mode === 'reset') zoom = 1;
+  else zoom = Math.max(0.25, Math.min(3, zoom + d));
+  renderBoardSurface();
+}
+
+function applyBoardData(b) {
+  // b.Width and b.Height are in inches
+  board = {
+    name: `${b.Brand} ${b.Name}`,
+    w: Math.round(b.Width * INCH_TO_CM * 10) / 10,
+    h: Math.round(b.Height * INCH_TO_CM * 10) / 10,
+    img: b.Image
+  };
+  document.querySelectorAll('.board-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.name === board.name);
+  });
+  renderBoardSurface();
+}
+
+function applyCustomBoard() {
+  const w = parseFloat(document.getElementById('cust-w').value) || 60;
+  const h = parseFloat(document.getElementById('cust-h').value) || 30;
+  board = { name:'Custom', w, h };
+  document.querySelectorAll('.board-item').forEach(el => el.classList.remove('active'));
+  renderBoardSurface();
+}
+
+// ═══════════════════════════════════════════════════════════
+// PEDAL LIBRARY
+// ═══════════════════════════════════════════════════════════
+function renderPedalLib(q) {
+  const lib = document.getElementById('pedal-lib');
+  const search = q.toLowerCase().trim();
+  const filtered = pedalData.filter(p =>
+    !search || p.Name.toLowerCase().includes(search) || p.Brand.toLowerCase().includes(search)
+  );
+
+  // Group by brand
+  const byBrand = {};
+  filtered.forEach(p => {
+    if (!byBrand[p.Brand]) byBrand[p.Brand] = [];
+    byBrand[p.Brand].push(p);
+  });
+  const brands = Object.keys(byBrand).sort();
+
+  lib.innerHTML = '';
+  brands.forEach(brand => {
+    const grp = document.createElement('div');
+    grp.className = 'brand-group';
+    const hdr = document.createElement('div');
+    hdr.className = 'brand-hdr';
+    hdr.innerHTML = `<span>${brand}</span><span style="font-size:9px;color:var(--dim)">${byBrand[brand].length}</span>`;
+    const items = document.createElement('div');
+    items.className = 'brand-items' + (search ? ' open' : '');
+    hdr.addEventListener('click', () => items.classList.toggle('open'));
+    byBrand[brand].forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'pedal-item';
+      row.innerHTML = `
+        <div class="pedal-thumb-placeholder" style="font-size:6px;text-align:center;padding:2px;word-break:break-all">${p.Name.slice(0,12)}</div>
+        <img class="pedal-thumb" src="${IMG_PATH}${p.Image}" alt="${p.Name}" style="display:none"
+          onload="this.style.display='block';this.previousElementSibling.style.display='none'"
+          onerror="this.style.display='none'">
+        <div class="pedal-info">
+          <div class="pedal-name-li">${p.Name}</div>
+          <div class="pedal-dims-li">${inToCm(p.Width)}×${inToCm(p.Height)}cm</div>
+        </div>`;
+      row.addEventListener('click', () => addPedalToCanvas(p));
+      items.appendChild(row);
+    });
+    grp.appendChild(hdr);
+    grp.appendChild(items);
+    lib.appendChild(grp);
+  });
+
+  const ct = document.getElementById('pedal-count');
+  ct.textContent = filtered.length === pedalData.length
+    ? `${pedalData.length} pedais disponíveis`
+    : `${filtered.length} de ${pedalData.length} pedais`;
+}
+
+function filterPedals(q) { renderPedalLib(q); }
+
+// ═══════════════════════════════════════════════════════════
+// BOARD LIBRARY
+// ═══════════════════════════════════════════════════════════
+function renderBoardLib(q) {
+  const lib = document.getElementById('board-lib');
+  const search = q.toLowerCase().trim();
+  const filtered = boardData.filter(b =>
+    !search || b.Name.toLowerCase().includes(search) || (b.Brand||'').toLowerCase().includes(search)
+  );
+  lib.innerHTML = '';
+  filtered.slice(0, 120).forEach(b => {
+    const el = document.createElement('div');
+    el.className = 'board-item';
+    el.dataset.name = `${b.Brand} ${b.Name}`;
+    el.innerHTML = `
+      <div class="board-name-li">${b.Brand} ${b.Name}</div>
+      <div class="board-dims-li">${inToCm(b.Width)} × ${inToCm(b.Height)} cm</div>
+      <img src="${BRD_PATH}${b.Image}" alt="${b.Name}" onerror="this.style.display='none'">`;
+    el.addEventListener('click', () => applyBoardData(b));
+    lib.appendChild(el);
+  });
+}
+
+function filterBoards(q) { renderBoardLib(q); }
+
+// ═══════════════════════════════════════════════════════════
+// ADD PEDAL TO CANVAS
+// ═══════════════════════════════════════════════════════════
+function addPedalToCanvas(p) {
+  const id = uid();
+  const wPx = inToPx(p.Width);
+  const hPx = inToPx(p.Height);
+  const canvasW = cmToPx(board.w);
+  const canvasH = cmToPx(board.h);
+  const x = Math.min(canvasW - wPx, Math.random() * (canvasW * 0.5));
+  const y = Math.min(canvasH - hPx, Math.random() * (canvasH * 0.4));
+
+  const inst = { id, name:p.Name, brand:p.Brand, image:p.Image, wIn:p.Width, hIn:p.Height, x, y, rot:0, draggabilly:null };
+  items.push(inst);
+  renderItemEl(inst);
+  renderChain();
+}
+
+function renderItemEl(inst) {
+  const canvas = document.getElementById('canvas');
+  const wPx = inToPx(inst.wIn);
+  const hPx = inToPx(inst.hIn);
+
+  const el = document.createElement('div');
+  el.className = 'c-item';
+  el.id = 'item-' + inst.id;
+  el.style.left = inst.x + 'px';
+  el.style.top  = inst.y + 'px';
+  el.style.width  = wPx + 'px';
+  el.style.height = hPx + 'px';
+  if (inst.rot) el.classList.add('r'+inst.rot);
+
+  el.innerHTML = `
+    <div class="artwork" style="width:${wPx}px;height:${hPx}px;position:relative;border-radius:2px;background:${hashColor(inst.brand)}">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3px;text-align:center">
+        <div style="font-size:${Math.max(7,Math.min(11,wPx/7))}px;font-weight:700;color:rgba(255,255,255,.9);line-height:1.1;font-family:var(--title);letter-spacing:.5px">${inst.name}</div>
+        <div style="font-size:${Math.max(6,Math.min(8,wPx/9))}px;color:rgba(255,255,255,.45);margin-top:2px">${inst.brand}</div>
+      </div>
+      <img src="${IMG_PATH}${inst.image}" alt="${inst.name}"
+        style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:2px;opacity:0;transition:opacity .2s"
+        onload="this.style.opacity=1;this.previousElementSibling.style.opacity=0"
+        onerror="this.style.display='none'">
+    </div>
+    <div class="c-actions">
+      <div class="c-act del" onclick="removeItem('${inst.id}')" title="Remover">×</div>
+      <div class="c-act rot" onclick="rotateItem('${inst.id}')" title="Girar (R)">↻</div>
+    </div>
+    <div class="port port-in"  data-id="${inst.id}" title="Input"></div>
+    <div class="port port-out" data-id="${inst.id}" title="Output"></div>`;
+
+  canvas.appendChild(el);
+  initDraggable(el, inst);
+
+  // port click handlers
+  el.querySelector('.port-out').addEventListener('click', e => {
+    e.stopPropagation();
+    startConn(inst.id);
+  });
+  el.querySelector('.port-in').addEventListener('click', e => {
+    e.stopPropagation();
+    if (connFrom && connFrom !== inst.id) completeConn(inst.id);
+    else if (connFrom === inst.id) cancelConn();
+  });
+}
+
+function initDraggable(el, inst) {
+  const drag = new Draggabilly(el, { containment: '#canvas' });
+  inst.draggabilly = drag;
+  drag.on('dragEnd', () => {
+    inst.x = parseFloat(el.style.left);
+    inst.y = parseFloat(el.style.top);
+    renderSVG();
+  });
+  drag.on('dragMove', () => renderSVG());
+}
+
+function refreshAllItems() {
+  items.forEach(inst => {
+    const el = document.getElementById('item-' + inst.id);
+    if (!el) return;
+    const wPx = inToPx(inst.wIn);
+    const hPx = inToPx(inst.hIn);
+    el.style.width  = wPx + 'px';
+    el.style.height = hPx + 'px';
+    el.style.left = inst.x + 'px';
+    el.style.top  = inst.y + 'px';
+    const art = el.querySelector('.artwork');
+    if (art) { art.style.width = wPx+'px'; art.style.height = hPx+'px'; }
+    if (inst.draggabilly) inst.draggabilly.destroy();
+    initDraggable(el, inst);
+  });
+}
+
+function removeItem(id) {
+  const inst = items.find(i => i.id === id);
+  if (!inst) return;
+  if (inst.draggabilly) inst.draggabilly.destroy();
+  const el = document.getElementById('item-' + id);
+  if (el) el.remove();
+  items = items.filter(i => i.id !== id);
+  conns = conns.filter(c => c.from !== id && c.to !== id);
+  renderSVG();
+  renderChain();
+  quote = null;
+  document.getElementById('q-summary').style.display = 'none';
+  document.getElementById('btn-gen-pdf').style.display = 'none';
+}
+
+function rotateItem(id) {
+  const inst = items.find(i => i.id === id);
+  if (!inst) return;
+  const el = document.getElementById('item-' + id);
+  el.classList.remove('r90','r180','r270');
+  inst.rot = (inst.rot + 90) % 360;
+  if (inst.rot) el.classList.add('r' + inst.rot);
+  renderSVG();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIGNAL CHAIN CONNECTIONS
+// ═══════════════════════════════════════════════════════════
+function portPos(id, side) {
+  const el = document.getElementById('item-' + id);
+  if (!el) return { x:0, y:0 };
+  const canvas = document.getElementById('canvas');
+  const cr = canvas.getBoundingClientRect();
+  const port = el.querySelector(side === 'out' ? '.port-out' : '.port-in');
+  if (!port) return { x:0, y:0 };
+  const pr = port.getBoundingClientRect();
+  return {
+    x: pr.left - cr.left + pr.width / 2,
+    y: pr.top  - cr.top  + pr.height / 2,
+  };
+}
+
+function startConn(fromId) {
+  if (connFrom) cancelConn();
+  connFrom = fromId;
+  document.getElementById('canvas').classList.add('conn-mode');
+  document.getElementById('conn-bar').style.display = 'flex';
+  document.addEventListener('mousemove', onMouseMoveConn);
+}
+
+function cancelConn() {
+  connFrom = null;
+  document.getElementById('canvas').classList.remove('conn-mode');
+  document.getElementById('conn-bar').style.display = 'none';
+  document.removeEventListener('mousemove', onMouseMoveConn);
+  const tmp = document.getElementById('tmp-line');
+  if (tmp) tmp.remove();
+}
+
+function completeConn(toId) {
+  if (!connFrom || connFrom === toId) { cancelConn(); return; }
+  const dup = conns.find(c => c.from === connFrom && c.to === toId);
+  if (!dup) {
+    const f = portPos(connFrom, 'out');
+    const t = portPos(toId, 'in');
+    const dist = Math.sqrt((t.x-f.x)**2 + (t.y-f.y)**2);
+    const lenCm = Math.round(pxToCm(dist) + 5); // +5cm slack
+    conns.push({ id:uid(), from:connFrom, to:toId, lenCm });
+  }
+  cancelConn();
+  renderSVG();
+  renderChain();
+  quote = null;
+}
+
+function onMouseMoveConn(e) {
+  if (!connFrom) return;
+  const svg = document.getElementById('conn-svg');
+  const cr = document.getElementById('canvas').getBoundingClientRect();
+  const f = portPos(connFrom, 'out');
+  const t = { x: e.clientX - cr.left, y: e.clientY - cr.top };
+  let tmp = document.getElementById('tmp-line');
+  if (!tmp) {
+    tmp = document.createElementNS('http://www.w3.org/2000/svg','path');
+    tmp.id = 'tmp-line';
+    svg.appendChild(tmp);
+  }
+  const dx = (t.x - f.x) * 0.45;
+  tmp.setAttribute('d', `M${f.x},${f.y} C${f.x+dx},${f.y} ${t.x-dx},${t.y} ${t.x},${t.y}`);
+}
+
+function removeConn(id) {
+  conns = conns.filter(c => c.id !== id);
+  renderSVG();
+  renderChain();
+  quote = null;
+}
+
+function renderSVG() {
+  const svg = document.getElementById('conn-svg');
+  svg.querySelectorAll('.conn-line,.conn-label').forEach(e => e.remove());
+  conns.forEach(c => {
+    const f = portPos(c.from, 'out');
+    const t = portPos(c.to, 'in');
+    const dx = (t.x - f.x) * 0.45;
+    const d = `M${f.x},${f.y} C${f.x+dx},${f.y} ${t.x-dx},${t.y} ${t.x},${t.y}`;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', d);
+    path.setAttribute('class','conn-line');
+    path.title = `${c.lenCm}cm — clique para remover`;
+    path.addEventListener('click', () => removeConn(c.id));
+    const mx = (f.x+t.x)/2, my = (f.y+t.y)/2 - 7;
+    const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x', mx); lbl.setAttribute('y', my);
+    lbl.setAttribute('text-anchor','middle');
+    lbl.setAttribute('class','conn-label');
+    lbl.textContent = c.lenCm + 'cm';
+    svg.appendChild(path);
+    svg.appendChild(lbl);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIGNAL CHAIN BUILDER
+// ═══════════════════════════════════════════════════════════
+function buildChain() {
+  if (!conns.length) return [];
+  // Find start: has an outgoing connection but no incoming connection
+  const toSet = new Set(conns.map(c => c.to));
+  const fromSet = new Set(conns.map(c => c.from));
+  const starts = [...fromSet].filter(id => !toSet.has(id));
+  // If no clear start (circular), pick first in fromSet
+  const startId = starts.length ? starts[0] : [...fromSet][0];
+  const chain = [], visited = new Set();
+  let cur = startId;
+  let safety = 0;
+  while (cur && !visited.has(cur) && safety++ < 200) {
+    visited.add(cur);
+    const inst = items.find(i => i.id === cur);
+    if (inst) chain.push({ inst, connOut: conns.find(c => c.from === cur) });
+    const next = conns.find(c => c.from === cur);
+    cur = next ? next.to : null;
+  }
+  return chain;
+}
+
+function renderChain() {
+  const chain = buildChain();
+  const listEl = document.getElementById('chain-list');
+  const fullEl = document.getElementById('chain-full');
+  const totalEl = document.getElementById('chain-total');
+  const emptyMsg = document.getElementById('chain-empty-msg');
+
+  // Clear old rows
+  Array.from(listEl.children).forEach(el => {
+    if (el.classList.contains('chain-row')) el.remove();
+  });
+
+  if (!chain.length) {
+    emptyMsg.style.display = 'block';
+    fullEl.style.display = 'none';
+    totalEl.style.display = 'none';
+    return;
+  }
+  emptyMsg.style.display = 'none';
+
+  let totalLen = 0;
+  chain.forEach(({ inst, connOut }, idx) => {
+    const row = document.createElement('div');
+    row.className = 'chain-row';
+    row.innerHTML =
+      '<span class="chain-n">' + (idx+1) + '</span>' +
+      '<span class="chain-nm">' + inst.brand + ' ' + inst.name + '</span>' +
+      (connOut ? '<span class="chain-len">' + connOut.lenCm + 'cm</span>' : '');
+    listEl.insertBefore(row, listEl.lastElementChild.nextSibling || null);
+    listEl.appendChild(row);
+    if (connOut) totalLen += connOut.lenCm;
+  });
+
+  const parts = [i('guitar'), ...chain.map(({ inst }) => inst.name), i('amp')];
+  fullEl.textContent = parts.join(' → ');
+  fullEl.style.display = 'block';
+  totalEl.textContent = 'Total: ' + totalLen + 'cm de cabo patch • ' + conns.length + ' cabo(s)';
+  totalEl.style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════
+// QUOTE
+// ═══════════════════════════════════════════════════════════
+function calcQuote() {
+  const cmplx = document.getElementById('f-cmplx').value;
+  const hasSrc = document.getElementById('f-src').checked;
+  const needUsb = document.getElementById('f-usb').checked;
+  const needJack = document.getElementById('f-jack').checked;
+  const equipN = items.length + (hasSrc ? 1 : 0);
+  const rate = PRICE[cmplx];
+  const labor = equipN * rate;
+  const cableN = conns.length;
+  const cableCost = cableN * PRICE.cable;
+  const total = labor + cableCost;
+  const needExtraQuote = needUsb || needJack;
+  quote = { cmplx, hasSrc, needUsb, needJack, equipN, rate, labor, cableN, cableCost, total, needExtraQuote };
+
+  const cmplxLabels = { simple: i('optSimple').split('—')[0].trim(), medium: i('optMedium').split('—')[0].trim(), complex: i('optComplex').split('—')[0].trim() };
+
+  const el = document.getElementById('q-summary');
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div class="q-row"><span>${i('labor')} · ${cmplxLabels[cmplx]} · ${equipN}× R$${rate}</span><span>R$ ${labor.toFixed(2)}</span></div>
+    <div class="q-row"><span>${i('cables')} · ${cableN}× R$${PRICE.cable}</span><span>R$ ${cableCost.toFixed(2)}</span></div>
+    ${needExtraQuote ? `<div class="q-row"><span style="color:var(--red)">USB / Jack painel</span><span style="color:var(--red)">${i('toQuote')}</span></div>` : ''}
+    <div class="q-row q-total"><span>${i('total')}</span><span>R$ ${total.toFixed(2)}${needExtraQuote?'+':''}</span></div>
+    ${needExtraQuote ? '<div class="q-note">* Cabo USB e jack de painel serão orçados separadamente.</div>' : ''}`;
+  document.getElementById('btn-gen-pdf').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════
+// PDF
+// ═══════════════════════════════════════════════════════════
+async function openPDF() {
+  if (!quote) calcQuote();
+  const chain = buildChain();
+  const chainTxt = chain.length ? [i('guitar'), ...chain.map(p => p.name), i('amp')].join(' → ') : '';
+  const today = new Date().toLocaleDateString(lang === 'pt' ? 'pt-BR' : 'en-US');
+  const nm = document.getElementById('f-name').value || '—';
+  const psuInfo = document.getElementById('f-src-info').value;
+  const usbType = document.getElementById('f-usb-type').value;
+  const owned = document.getElementById('f-owned').value;
+  const order = document.getElementById('f-order').value;
+  const notes = document.getElementById('f-notes').value;
+  const q = quote || {};
+  const cmplxMap = { simple:'Simples', medium:'Média', complex:'Complexa' };
+
+  // capture board
+  let boardImg = '';
+  try {
+    const canvasEl = document.getElementById('canvas');
+    const origTransform = canvasEl.style.transform;
+    const snap = await html2canvas(canvasEl, {
+      backgroundColor:'#1a1510', scale:1.5, useCORS:true, logging:false,
+      width:canvasEl.offsetWidth, height:canvasEl.offsetHeight
+    });
+    boardImg = snap.toDataURL('image/png');
+    canvasEl.style.transform = origTransform;
+  } catch(e) { console.warn('Capture failed:', e); }
+
+  const pedalRows = items.map((it,i) =>
+    `<tr><td>${i+1}</td><td>${it.brand}</td><td>${it.name}</td><td>${inToCm(it.wIn)}×${inToCm(it.hIn)}cm</td></tr>`
+  ).join('');
+
+  document.getElementById('pdf-content').innerHTML = `
+    <div class="pdf-hdr">
+      <div class="pdf-logo-area">
+        <div class="pdf-brand">DUCKTONE</div>
+        <div class="pdf-sub">- CUSTOM BOARDS -</div>
+      </div>
+      <div class="pdf-client-area">
+        <div class="pdf-client-name">${nm}</div>
+        <div class="pdf-date-line">${i('propDate')}: ${today} &nbsp;·&nbsp; ${i('validity')}</div>
+        <div class="pdf-date-line">Board: ${board.w}×${board.h}cm &nbsp;·&nbsp; ${items.length} pedais</div>
+      </div>
+    </div>
+
+    ${boardImg ? `<div class="pdf-section">${i('layoutSec')}</div><img class="pdf-board-img" src="${boardImg}">` : ''}
+
+    ${chainTxt ? `<div class="pdf-section">${i('chainSec')}</div><div class="pdf-chain-txt">${chainTxt}</div>` : ''}
+
+    <div class="pdf-section">${i('pedalsSec')}</div>
+    <table class="pdf-tbl">
+      <thead><tr><th>#</th><th>Marca</th><th>Pedal</th><th>Dims</th></tr></thead>
+      <tbody>${pedalRows || '<tr><td colspan="4" style="color:#aaa">—</td></tr>'}</tbody>
+    </table>
+
+    <div class="pdf-section">${i('quoteSec')}</div>
+    <table class="pdf-tbl">
+      <thead><tr><th>Item</th><th>Qtd</th><th>Unit.</th><th>Total</th></tr></thead>
+      <tbody>
+        <tr><td>${i('labor')} · ${cmplxMap[q.cmplx]||'—'}</td><td>${q.equipN||0} equip.</td><td>R$${q.rate||0}</td><td>R$ ${(q.labor||0).toFixed(2)}</td></tr>
+        <tr><td>${i('cables')}</td><td>${q.cableN||0} cabos</td><td>R$${PRICE.cable}</td><td>R$ ${(q.cableCost||0).toFixed(2)}</td></tr>
+        ${q.needUsb ? `<tr><td>Cabo USB ${usbType}</td><td>1</td><td colspan="2" style="color:#c0392b">A orçar</td></tr>` : ''}
+        ${q.needJack ? `<tr><td>Jack fêmea USB painel</td><td>1</td><td colspan="2" style="color:#c0392b">A orçar</td></tr>` : ''}
+      </tbody>
+    </table>
+
+    <div class="pdf-total-band">
+      <span class="pdf-total-lbl">${i('total')}</span>
+      <span class="pdf-total-val">R$ ${(q.total||0).toFixed(2)}${q.needExtraQuote?'+':''}</span>
+    </div>
+
+    ${psuInfo ? `<p style="font-size:10px;margin-top:8px;color:#555">⚡ Fonte: ${psuInfo}</p>` : ''}
+    ${owned ? `<p style="font-size:10px;margin-top:4px;color:#555">✅ O cliente possui: ${owned}</p>` : ''}
+    ${order ? `<p style="font-size:10px;margin-top:4px;color:#555">🛒 A comprar: ${order}</p>` : ''}
+    ${notes ? `<p style="font-size:10px;margin-top:4px;color:#555">📝 ${notes}</p>` : ''}
+
+    <div class="pdf-cond"><strong>${i('condTitle')}</strong><br>${i('cond')}</div>
+    <div class="pdf-footer"><span>ducktone.com.br</span><span>@ducktone</span></div>
+
+    <div class="pdf-actions">
+      <button class="pdf-dl" onclick="dlPDF()">${i('dlPDF')}</button>
+      <button class="pdf-cl" onclick="closePDF()">${i('close')}</button>
+    </div>`;
+
+  document.getElementById('pdf-modal').classList.add('open');
+}
+
+function closePDF() {
+  document.getElementById('pdf-modal').classList.remove('open');
+}
+
+async function dlPDF() {
+  const { jsPDF } = window.jspdf;
+  try {
+    const content = document.getElementById('pdf-content');
+    const snap = await html2canvas(content, { scale:2, useCORS:true, backgroundColor:'#fff' });
+    const img = snap.toDataURL('image/png');
+    const pdf = new jsPDF('p','mm','a4');
+    const ratio = snap.width / snap.height;
+    const w = 210, h = w / ratio;
+    if (h <= 297) {
+      pdf.addImage(img,'PNG',0,0,w,h);
+    } else {
+      const pages = Math.ceil(h/297);
+      for (let p=0; p<pages; p++) {
+        if (p>0) pdf.addPage();
+        pdf.addImage(img,'PNG',0,-p*297,w,h);
+      }
+    }
+    const nm = (document.getElementById('f-name').value || 'cliente').replace(/\s+/g,'-');
+    pdf.save(`DuckTone-${nm}-${new Date().toISOString().slice(0,10)}.pdf`);
+  } catch(e) { console.error(e); window.print(); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILITY
+// ═══════════════════════════════════════════════════════════
+function clearCanvas() {
+  if (!confirm(i('confirmClear'))) return;
+  items.forEach(inst => {
+    if (inst.draggabilly) inst.draggabilly.destroy();
+    const el = document.getElementById('item-' + inst.id);
+    if (el) el.remove();
+  });
+  items = []; conns = []; quote = null;
+  document.getElementById('q-summary').style.display = 'none';
+  document.getElementById('btn-gen-pdf').style.display = 'none';
+  renderSVG(); renderChain();
+}
+
+function setLSTab(t) {
+  document.getElementById('pane-pedals').classList.toggle('hidden', t!=='pedals');
+  document.getElementById('pane-boards').classList.toggle('hidden', t!=='boards');
+  document.getElementById('lst-pedals').classList.toggle('active', t==='pedals');
+  document.getElementById('lst-boards').classList.toggle('active', t==='boards');
+}
+
+function setRPTab(t) {
+  document.getElementById('pane-chain').classList.toggle('hidden', t!=='chain');
+  document.getElementById('pane-quote').classList.toggle('hidden', t!=='quote');
+  document.getElementById('rst-chain').classList.toggle('active', t==='chain');
+  document.getElementById('rst-quote').classList.toggle('active', t==='quote');
+}
+
+function toggleSub(id, show) {
+  document.getElementById(id).classList.toggle('hidden', !show);
+}
+
+// ═══════════════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') cancelConn();
+  if (e.key === 'r' || e.key === 'R') {
+    const sel = document.querySelector('.c-item.selected');
+    if (sel) {
+      const id = sel.id.replace('item-','');
+      rotateItem(id);
+    }
+  }
+});
+
+document.getElementById('canvas').addEventListener('click', e => {
+  if (e.target === document.getElementById('canvas') || e.target === document.getElementById('conn-svg')) {
+    if (connFrom) cancelConn();
+    document.querySelectorAll('.c-item.selected').forEach(el => el.classList.remove('selected'));
+  }
+});
+
+document.querySelectorAll('.c-item').forEach(el => {
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    document.querySelectorAll('.c-item.selected').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+function hashColor(str) {
+  // Generate consistent muted color from brand name
+  let hash = 0;
+  for (let c of (str||'')) hash = c.charCodeAt(0) + ((hash<<5)-hash);
+  const hue = ((hash % 360) + 360) % 360;
+  return `hsl(${hue},35%,22%)`;
+}
+
+window.addEventListener('load', () => {
+  renderBoardSurface();
+  loadData();
+  applyI18n();
+});
+</script>
+</body>
+</html>
