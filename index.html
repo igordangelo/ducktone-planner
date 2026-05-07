@@ -7,165 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js">
-// ═══════════════════════════════════════════════════════
-// MOBILE
-// ═══════════════════════════════════════════════════════
-function isMobile(){ return window.innerWidth <= 900; }
-
-function openSheet(sheetId, btnId){
-  const alreadyOpen = document.getElementById(sheetId).classList.contains('open');
-  closeAllSheets();
-  if(!alreadyOpen){
-    document.getElementById(sheetId).classList.add('open');
-    document.getElementById('sheet-overlay').classList.add('open');
-    if(btnId) document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('active', b.id===btnId));
-    // Sincronizar listas mobile com as do desktop
-    if(sheetId==='sheet-pedals') syncPedalLibMobile();
-    if(sheetId==='sheet-boards') syncBoardLibMobile();
-    if(sheetId==='sheet-chain') syncChainMobile();
-  }
-}
-
-function closeAllSheets(){
-  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
-  document.getElementById('sheet-overlay').classList.remove('open');
-  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-}
-
-function syncPedalLibMobile(){
-  const src = document.getElementById('pedal-lib');
-  const dst = document.getElementById('pedal-lib-mobile');
-  if(src && dst) dst.innerHTML = src.innerHTML;
-  // Re-attach click handlers
-  dst.querySelectorAll('.pedal-item').forEach((el,i)=>{
-    const srcItem = src ? src.querySelectorAll('.pedal-item')[i] : null;
-    el.addEventListener('click',()=>{
-      if(srcItem) srcItem.click();
-      closeAllSheets();
-    });
-  });
-}
-
-function syncBoardLibMobile(){
-  const src = document.getElementById('board-lib');
-  const dst = document.getElementById('board-lib-mobile');
-  if(src && dst) dst.innerHTML = src.innerHTML;
-  dst.querySelectorAll('.board-item').forEach((el,i)=>{
-    const srcItem = src ? src.querySelectorAll('.board-item')[i] : null;
-    el.addEventListener('click',()=>{
-      if(srcItem) srcItem.click();
-      closeAllSheets();
-    });
-  });
-}
-
-function syncChainMobile(){
-  const chain = buildChain();
-  const listEl = document.getElementById('chain-list-mobile');
-  const fullEl = document.getElementById('chain-full-mobile');
-  const totalEl = document.getElementById('chain-total-mobile');
-  listEl.innerHTML = '';
-  if(!chain.length){
-    listEl.innerHTML = '<div class="chain-empty">Conecte os pedais para ver a cadeia.</div>';
-    fullEl.style.display='none'; totalEl.style.display='none'; return;
-  }
-  let totalLen=0;
-  chain.forEach(({inst,connOut},idx)=>{
-    const row=document.createElement('div'); row.className='chain-row';
-    row.innerHTML='<span class="chain-n">'+(idx+1)+'</span><span class="chain-nm">'+inst.brand+' '+inst.name+'</span>'+(connOut?'<span class="chain-len">'+connOut.lenCm+'cm</span>':'');
-    listEl.appendChild(row);
-    if(connOut) totalLen+=connOut.lenCm;
-  });
-  const parts=[i('guitar'),...chain.map(({inst})=>inst.name),i('amp')];
-  fullEl.textContent=parts.join(' → '); fullEl.style.display='block';
-  totalEl.textContent='Total: '+totalLen+'cm · '+conns.length+' cabo(s)'; totalEl.style.display='block';
-}
-
-function calcQuoteMobile(){
-  // Pegar valores dos campos mobile
-  const nm = document.getElementById('f-name-m').value;
-  const cmplx = document.getElementById('f-cmplx-m').value;
-  const hasSrc = document.getElementById('f-src-m').checked;
-  const needUsb = document.getElementById('f-usb-m').checked;
-  const needJack = document.getElementById('f-jack-m').checked;
-  
-  // Sincronizar com campos desktop
-  document.getElementById('f-name').value = nm;
-  document.getElementById('f-cmplx').value = cmplx;
-  document.getElementById('f-src').checked = hasSrc;
-  document.getElementById('f-usb').checked = needUsb;
-  document.getElementById('f-jack').checked = needJack;
-  if(document.getElementById('f-src-info-m').value)
-    document.getElementById('f-src-info').value = document.getElementById('f-src-info-m').value;
-  if(document.getElementById('f-usb-type-m').value)
-    document.getElementById('f-usb-type').value = document.getElementById('f-usb-type-m').value;
-  if(document.getElementById('f-owned-m').value)
-    document.getElementById('f-owned').value = document.getElementById('f-owned-m').value;
-  if(document.getElementById('f-order-m').value)
-    document.getElementById('f-order').value = document.getElementById('f-order-m').value;
-  if(document.getElementById('f-notes-m').value)
-    document.getElementById('f-notes').value = document.getElementById('f-notes-m').value;
-
-  calcQuote();
-  
-  // Mostrar resultado no mobile
-  const src = document.getElementById('q-summary');
-  const dst = document.getElementById('q-summary-mobile');
-  dst.innerHTML = src.innerHTML; dst.style.display='block';
-  document.getElementById('btn-gen-pdf-mobile').style.display='block';
-}
-
-function addCustomPedalMobile(){
-  const name  = document.getElementById('cp-name-m').value.trim() || 'Pedal Custom';
-  const wCm   = parseFloat(document.getElementById('cp-w-m').value) || 12;
-  const hCm   = parseFloat(document.getElementById('cp-h-m').value) || 7;
-  const color = document.getElementById('cp-color-m').value;
-  addPedalToCanvasCustom({Name:name, Brand:'Custom', Width:wCm/INCH_TO_CM, Height:hCm/INCH_TO_CM, customColor:color, isCustom:true});
-  document.getElementById('cp-name-m').value='';
-  document.getElementById('custom-pedal-form-mobile').style.display='none';
-  closeAllSheets();
-}
-
-function applyCustomBoardMobile(){
-  const w = parseFloat(document.getElementById('cust-w-m').value)||60;
-  const h = parseFloat(document.getElementById('cust-h-m').value)||30;
-  board={name:'Custom',w,h};
-  document.querySelectorAll('.board-item').forEach(el=>el.classList.remove('active'));
-  renderBoardSurface();
-  closeAllSheets();
-}
-
-function toggleCustomForm(){
-  const f1 = document.getElementById('custom-pedal-form');
-  const f2 = document.getElementById('custom-pedal-form-mobile');
-  if(f1) f1.classList.toggle('open');
-  if(f2) f2.style.display = f2.style.display==='none'?'block':'none';
-}
-
-// Inicializar presets de cor no mobile também
-function initColorPresets() {
-  [document.getElementById('color-presets'), document.getElementById('color-presets-mobile')].forEach(wrap=>{
-    if(!wrap) return;
-    wrap.innerHTML='';
-    PRESET_COLORS.forEach(color=>{
-      const dot=document.createElement('div'); dot.className='color-dot';
-      dot.style.background=color; dot.title=color;
-      dot.addEventListener('click',()=>{
-        const picker = wrap.id==='color-presets-mobile' ? 'cp-color-m' : 'cp-color';
-        document.getElementById(picker).value=color;
-        wrap.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('sel'));
-        dot.classList.add('sel');
-      });
-      wrap.appendChild(dot);
-    });
-    if(wrap.firstChild) wrap.firstChild.classList.add('sel');
-  });
-}
-
-// Touch: swipe down para fechar sheet
-document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(sheet=>{
-  let startY=0;
-  sheet.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;},{passive:true});
   sheet.addEventListener('touchend',e=>{
     const dy=e.changedTouches[0].clientY - startY;
     if(dy>60) closeAllSheets();
@@ -174,165 +15,6 @@ document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(
 
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/draggabilly/3.0.0/draggabilly.pkgd.min.js">
-// ═══════════════════════════════════════════════════════
-// MOBILE
-// ═══════════════════════════════════════════════════════
-function isMobile(){ return window.innerWidth <= 900; }
-
-function openSheet(sheetId, btnId){
-  const alreadyOpen = document.getElementById(sheetId).classList.contains('open');
-  closeAllSheets();
-  if(!alreadyOpen){
-    document.getElementById(sheetId).classList.add('open');
-    document.getElementById('sheet-overlay').classList.add('open');
-    if(btnId) document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('active', b.id===btnId));
-    // Sincronizar listas mobile com as do desktop
-    if(sheetId==='sheet-pedals') syncPedalLibMobile();
-    if(sheetId==='sheet-boards') syncBoardLibMobile();
-    if(sheetId==='sheet-chain') syncChainMobile();
-  }
-}
-
-function closeAllSheets(){
-  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
-  document.getElementById('sheet-overlay').classList.remove('open');
-  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-}
-
-function syncPedalLibMobile(){
-  const src = document.getElementById('pedal-lib');
-  const dst = document.getElementById('pedal-lib-mobile');
-  if(src && dst) dst.innerHTML = src.innerHTML;
-  // Re-attach click handlers
-  dst.querySelectorAll('.pedal-item').forEach((el,i)=>{
-    const srcItem = src ? src.querySelectorAll('.pedal-item')[i] : null;
-    el.addEventListener('click',()=>{
-      if(srcItem) srcItem.click();
-      closeAllSheets();
-    });
-  });
-}
-
-function syncBoardLibMobile(){
-  const src = document.getElementById('board-lib');
-  const dst = document.getElementById('board-lib-mobile');
-  if(src && dst) dst.innerHTML = src.innerHTML;
-  dst.querySelectorAll('.board-item').forEach((el,i)=>{
-    const srcItem = src ? src.querySelectorAll('.board-item')[i] : null;
-    el.addEventListener('click',()=>{
-      if(srcItem) srcItem.click();
-      closeAllSheets();
-    });
-  });
-}
-
-function syncChainMobile(){
-  const chain = buildChain();
-  const listEl = document.getElementById('chain-list-mobile');
-  const fullEl = document.getElementById('chain-full-mobile');
-  const totalEl = document.getElementById('chain-total-mobile');
-  listEl.innerHTML = '';
-  if(!chain.length){
-    listEl.innerHTML = '<div class="chain-empty">Conecte os pedais para ver a cadeia.</div>';
-    fullEl.style.display='none'; totalEl.style.display='none'; return;
-  }
-  let totalLen=0;
-  chain.forEach(({inst,connOut},idx)=>{
-    const row=document.createElement('div'); row.className='chain-row';
-    row.innerHTML='<span class="chain-n">'+(idx+1)+'</span><span class="chain-nm">'+inst.brand+' '+inst.name+'</span>'+(connOut?'<span class="chain-len">'+connOut.lenCm+'cm</span>':'');
-    listEl.appendChild(row);
-    if(connOut) totalLen+=connOut.lenCm;
-  });
-  const parts=[i('guitar'),...chain.map(({inst})=>inst.name),i('amp')];
-  fullEl.textContent=parts.join(' → '); fullEl.style.display='block';
-  totalEl.textContent='Total: '+totalLen+'cm · '+conns.length+' cabo(s)'; totalEl.style.display='block';
-}
-
-function calcQuoteMobile(){
-  // Pegar valores dos campos mobile
-  const nm = document.getElementById('f-name-m').value;
-  const cmplx = document.getElementById('f-cmplx-m').value;
-  const hasSrc = document.getElementById('f-src-m').checked;
-  const needUsb = document.getElementById('f-usb-m').checked;
-  const needJack = document.getElementById('f-jack-m').checked;
-  
-  // Sincronizar com campos desktop
-  document.getElementById('f-name').value = nm;
-  document.getElementById('f-cmplx').value = cmplx;
-  document.getElementById('f-src').checked = hasSrc;
-  document.getElementById('f-usb').checked = needUsb;
-  document.getElementById('f-jack').checked = needJack;
-  if(document.getElementById('f-src-info-m').value)
-    document.getElementById('f-src-info').value = document.getElementById('f-src-info-m').value;
-  if(document.getElementById('f-usb-type-m').value)
-    document.getElementById('f-usb-type').value = document.getElementById('f-usb-type-m').value;
-  if(document.getElementById('f-owned-m').value)
-    document.getElementById('f-owned').value = document.getElementById('f-owned-m').value;
-  if(document.getElementById('f-order-m').value)
-    document.getElementById('f-order').value = document.getElementById('f-order-m').value;
-  if(document.getElementById('f-notes-m').value)
-    document.getElementById('f-notes').value = document.getElementById('f-notes-m').value;
-
-  calcQuote();
-  
-  // Mostrar resultado no mobile
-  const src = document.getElementById('q-summary');
-  const dst = document.getElementById('q-summary-mobile');
-  dst.innerHTML = src.innerHTML; dst.style.display='block';
-  document.getElementById('btn-gen-pdf-mobile').style.display='block';
-}
-
-function addCustomPedalMobile(){
-  const name  = document.getElementById('cp-name-m').value.trim() || 'Pedal Custom';
-  const wCm   = parseFloat(document.getElementById('cp-w-m').value) || 12;
-  const hCm   = parseFloat(document.getElementById('cp-h-m').value) || 7;
-  const color = document.getElementById('cp-color-m').value;
-  addPedalToCanvasCustom({Name:name, Brand:'Custom', Width:wCm/INCH_TO_CM, Height:hCm/INCH_TO_CM, customColor:color, isCustom:true});
-  document.getElementById('cp-name-m').value='';
-  document.getElementById('custom-pedal-form-mobile').style.display='none';
-  closeAllSheets();
-}
-
-function applyCustomBoardMobile(){
-  const w = parseFloat(document.getElementById('cust-w-m').value)||60;
-  const h = parseFloat(document.getElementById('cust-h-m').value)||30;
-  board={name:'Custom',w,h};
-  document.querySelectorAll('.board-item').forEach(el=>el.classList.remove('active'));
-  renderBoardSurface();
-  closeAllSheets();
-}
-
-function toggleCustomForm(){
-  const f1 = document.getElementById('custom-pedal-form');
-  const f2 = document.getElementById('custom-pedal-form-mobile');
-  if(f1) f1.classList.toggle('open');
-  if(f2) f2.style.display = f2.style.display==='none'?'block':'none';
-}
-
-// Inicializar presets de cor no mobile também
-function initColorPresets() {
-  [document.getElementById('color-presets'), document.getElementById('color-presets-mobile')].forEach(wrap=>{
-    if(!wrap) return;
-    wrap.innerHTML='';
-    PRESET_COLORS.forEach(color=>{
-      const dot=document.createElement('div'); dot.className='color-dot';
-      dot.style.background=color; dot.title=color;
-      dot.addEventListener('click',()=>{
-        const picker = wrap.id==='color-presets-mobile' ? 'cp-color-m' : 'cp-color';
-        document.getElementById(picker).value=color;
-        wrap.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('sel'));
-        dot.classList.add('sel');
-      });
-      wrap.appendChild(dot);
-    });
-    if(wrap.firstChild) wrap.firstChild.classList.add('sel');
-  });
-}
-
-// Touch: swipe down para fechar sheet
-document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(sheet=>{
-  let startY=0;
-  sheet.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;},{passive:true});
   sheet.addEventListener('touchend',e=>{
     const dy=e.changedTouches[0].clientY - startY;
     if(dy>60) closeAllSheets();
@@ -341,165 +23,6 @@ document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(
 
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
-// ═══════════════════════════════════════════════════════
-// MOBILE
-// ═══════════════════════════════════════════════════════
-function isMobile(){ return window.innerWidth <= 900; }
-
-function openSheet(sheetId, btnId){
-  const alreadyOpen = document.getElementById(sheetId).classList.contains('open');
-  closeAllSheets();
-  if(!alreadyOpen){
-    document.getElementById(sheetId).classList.add('open');
-    document.getElementById('sheet-overlay').classList.add('open');
-    if(btnId) document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('active', b.id===btnId));
-    // Sincronizar listas mobile com as do desktop
-    if(sheetId==='sheet-pedals') syncPedalLibMobile();
-    if(sheetId==='sheet-boards') syncBoardLibMobile();
-    if(sheetId==='sheet-chain') syncChainMobile();
-  }
-}
-
-function closeAllSheets(){
-  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
-  document.getElementById('sheet-overlay').classList.remove('open');
-  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-}
-
-function syncPedalLibMobile(){
-  const src = document.getElementById('pedal-lib');
-  const dst = document.getElementById('pedal-lib-mobile');
-  if(src && dst) dst.innerHTML = src.innerHTML;
-  // Re-attach click handlers
-  dst.querySelectorAll('.pedal-item').forEach((el,i)=>{
-    const srcItem = src ? src.querySelectorAll('.pedal-item')[i] : null;
-    el.addEventListener('click',()=>{
-      if(srcItem) srcItem.click();
-      closeAllSheets();
-    });
-  });
-}
-
-function syncBoardLibMobile(){
-  const src = document.getElementById('board-lib');
-  const dst = document.getElementById('board-lib-mobile');
-  if(src && dst) dst.innerHTML = src.innerHTML;
-  dst.querySelectorAll('.board-item').forEach((el,i)=>{
-    const srcItem = src ? src.querySelectorAll('.board-item')[i] : null;
-    el.addEventListener('click',()=>{
-      if(srcItem) srcItem.click();
-      closeAllSheets();
-    });
-  });
-}
-
-function syncChainMobile(){
-  const chain = buildChain();
-  const listEl = document.getElementById('chain-list-mobile');
-  const fullEl = document.getElementById('chain-full-mobile');
-  const totalEl = document.getElementById('chain-total-mobile');
-  listEl.innerHTML = '';
-  if(!chain.length){
-    listEl.innerHTML = '<div class="chain-empty">Conecte os pedais para ver a cadeia.</div>';
-    fullEl.style.display='none'; totalEl.style.display='none'; return;
-  }
-  let totalLen=0;
-  chain.forEach(({inst,connOut},idx)=>{
-    const row=document.createElement('div'); row.className='chain-row';
-    row.innerHTML='<span class="chain-n">'+(idx+1)+'</span><span class="chain-nm">'+inst.brand+' '+inst.name+'</span>'+(connOut?'<span class="chain-len">'+connOut.lenCm+'cm</span>':'');
-    listEl.appendChild(row);
-    if(connOut) totalLen+=connOut.lenCm;
-  });
-  const parts=[i('guitar'),...chain.map(({inst})=>inst.name),i('amp')];
-  fullEl.textContent=parts.join(' → '); fullEl.style.display='block';
-  totalEl.textContent='Total: '+totalLen+'cm · '+conns.length+' cabo(s)'; totalEl.style.display='block';
-}
-
-function calcQuoteMobile(){
-  // Pegar valores dos campos mobile
-  const nm = document.getElementById('f-name-m').value;
-  const cmplx = document.getElementById('f-cmplx-m').value;
-  const hasSrc = document.getElementById('f-src-m').checked;
-  const needUsb = document.getElementById('f-usb-m').checked;
-  const needJack = document.getElementById('f-jack-m').checked;
-  
-  // Sincronizar com campos desktop
-  document.getElementById('f-name').value = nm;
-  document.getElementById('f-cmplx').value = cmplx;
-  document.getElementById('f-src').checked = hasSrc;
-  document.getElementById('f-usb').checked = needUsb;
-  document.getElementById('f-jack').checked = needJack;
-  if(document.getElementById('f-src-info-m').value)
-    document.getElementById('f-src-info').value = document.getElementById('f-src-info-m').value;
-  if(document.getElementById('f-usb-type-m').value)
-    document.getElementById('f-usb-type').value = document.getElementById('f-usb-type-m').value;
-  if(document.getElementById('f-owned-m').value)
-    document.getElementById('f-owned').value = document.getElementById('f-owned-m').value;
-  if(document.getElementById('f-order-m').value)
-    document.getElementById('f-order').value = document.getElementById('f-order-m').value;
-  if(document.getElementById('f-notes-m').value)
-    document.getElementById('f-notes').value = document.getElementById('f-notes-m').value;
-
-  calcQuote();
-  
-  // Mostrar resultado no mobile
-  const src = document.getElementById('q-summary');
-  const dst = document.getElementById('q-summary-mobile');
-  dst.innerHTML = src.innerHTML; dst.style.display='block';
-  document.getElementById('btn-gen-pdf-mobile').style.display='block';
-}
-
-function addCustomPedalMobile(){
-  const name  = document.getElementById('cp-name-m').value.trim() || 'Pedal Custom';
-  const wCm   = parseFloat(document.getElementById('cp-w-m').value) || 12;
-  const hCm   = parseFloat(document.getElementById('cp-h-m').value) || 7;
-  const color = document.getElementById('cp-color-m').value;
-  addPedalToCanvasCustom({Name:name, Brand:'Custom', Width:wCm/INCH_TO_CM, Height:hCm/INCH_TO_CM, customColor:color, isCustom:true});
-  document.getElementById('cp-name-m').value='';
-  document.getElementById('custom-pedal-form-mobile').style.display='none';
-  closeAllSheets();
-}
-
-function applyCustomBoardMobile(){
-  const w = parseFloat(document.getElementById('cust-w-m').value)||60;
-  const h = parseFloat(document.getElementById('cust-h-m').value)||30;
-  board={name:'Custom',w,h};
-  document.querySelectorAll('.board-item').forEach(el=>el.classList.remove('active'));
-  renderBoardSurface();
-  closeAllSheets();
-}
-
-function toggleCustomForm(){
-  const f1 = document.getElementById('custom-pedal-form');
-  const f2 = document.getElementById('custom-pedal-form-mobile');
-  if(f1) f1.classList.toggle('open');
-  if(f2) f2.style.display = f2.style.display==='none'?'block':'none';
-}
-
-// Inicializar presets de cor no mobile também
-function initColorPresets() {
-  [document.getElementById('color-presets'), document.getElementById('color-presets-mobile')].forEach(wrap=>{
-    if(!wrap) return;
-    wrap.innerHTML='';
-    PRESET_COLORS.forEach(color=>{
-      const dot=document.createElement('div'); dot.className='color-dot';
-      dot.style.background=color; dot.title=color;
-      dot.addEventListener('click',()=>{
-        const picker = wrap.id==='color-presets-mobile' ? 'cp-color-m' : 'cp-color';
-        document.getElementById(picker).value=color;
-        wrap.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('sel'));
-        dot.classList.add('sel');
-      });
-      wrap.appendChild(dot);
-    });
-    if(wrap.firstChild) wrap.firstChild.classList.add('sel');
-  });
-}
-
-// Touch: swipe down para fechar sheet
-document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(sheet=>{
-  let startY=0;
-  sheet.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;},{passive:true});
   sheet.addEventListener('touchend',e=>{
     const dy=e.changedTouches[0].clientY - startY;
     if(dy>60) closeAllSheets();
@@ -508,165 +31,6 @@ document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(
 
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
-// ═══════════════════════════════════════════════════════
-// MOBILE
-// ═══════════════════════════════════════════════════════
-function isMobile(){ return window.innerWidth <= 900; }
-
-function openSheet(sheetId, btnId){
-  const alreadyOpen = document.getElementById(sheetId).classList.contains('open');
-  closeAllSheets();
-  if(!alreadyOpen){
-    document.getElementById(sheetId).classList.add('open');
-    document.getElementById('sheet-overlay').classList.add('open');
-    if(btnId) document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('active', b.id===btnId));
-    // Sincronizar listas mobile com as do desktop
-    if(sheetId==='sheet-pedals') syncPedalLibMobile();
-    if(sheetId==='sheet-boards') syncBoardLibMobile();
-    if(sheetId==='sheet-chain') syncChainMobile();
-  }
-}
-
-function closeAllSheets(){
-  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
-  document.getElementById('sheet-overlay').classList.remove('open');
-  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-}
-
-function syncPedalLibMobile(){
-  const src = document.getElementById('pedal-lib');
-  const dst = document.getElementById('pedal-lib-mobile');
-  if(src && dst) dst.innerHTML = src.innerHTML;
-  // Re-attach click handlers
-  dst.querySelectorAll('.pedal-item').forEach((el,i)=>{
-    const srcItem = src ? src.querySelectorAll('.pedal-item')[i] : null;
-    el.addEventListener('click',()=>{
-      if(srcItem) srcItem.click();
-      closeAllSheets();
-    });
-  });
-}
-
-function syncBoardLibMobile(){
-  const src = document.getElementById('board-lib');
-  const dst = document.getElementById('board-lib-mobile');
-  if(src && dst) dst.innerHTML = src.innerHTML;
-  dst.querySelectorAll('.board-item').forEach((el,i)=>{
-    const srcItem = src ? src.querySelectorAll('.board-item')[i] : null;
-    el.addEventListener('click',()=>{
-      if(srcItem) srcItem.click();
-      closeAllSheets();
-    });
-  });
-}
-
-function syncChainMobile(){
-  const chain = buildChain();
-  const listEl = document.getElementById('chain-list-mobile');
-  const fullEl = document.getElementById('chain-full-mobile');
-  const totalEl = document.getElementById('chain-total-mobile');
-  listEl.innerHTML = '';
-  if(!chain.length){
-    listEl.innerHTML = '<div class="chain-empty">Conecte os pedais para ver a cadeia.</div>';
-    fullEl.style.display='none'; totalEl.style.display='none'; return;
-  }
-  let totalLen=0;
-  chain.forEach(({inst,connOut},idx)=>{
-    const row=document.createElement('div'); row.className='chain-row';
-    row.innerHTML='<span class="chain-n">'+(idx+1)+'</span><span class="chain-nm">'+inst.brand+' '+inst.name+'</span>'+(connOut?'<span class="chain-len">'+connOut.lenCm+'cm</span>':'');
-    listEl.appendChild(row);
-    if(connOut) totalLen+=connOut.lenCm;
-  });
-  const parts=[i('guitar'),...chain.map(({inst})=>inst.name),i('amp')];
-  fullEl.textContent=parts.join(' → '); fullEl.style.display='block';
-  totalEl.textContent='Total: '+totalLen+'cm · '+conns.length+' cabo(s)'; totalEl.style.display='block';
-}
-
-function calcQuoteMobile(){
-  // Pegar valores dos campos mobile
-  const nm = document.getElementById('f-name-m').value;
-  const cmplx = document.getElementById('f-cmplx-m').value;
-  const hasSrc = document.getElementById('f-src-m').checked;
-  const needUsb = document.getElementById('f-usb-m').checked;
-  const needJack = document.getElementById('f-jack-m').checked;
-  
-  // Sincronizar com campos desktop
-  document.getElementById('f-name').value = nm;
-  document.getElementById('f-cmplx').value = cmplx;
-  document.getElementById('f-src').checked = hasSrc;
-  document.getElementById('f-usb').checked = needUsb;
-  document.getElementById('f-jack').checked = needJack;
-  if(document.getElementById('f-src-info-m').value)
-    document.getElementById('f-src-info').value = document.getElementById('f-src-info-m').value;
-  if(document.getElementById('f-usb-type-m').value)
-    document.getElementById('f-usb-type').value = document.getElementById('f-usb-type-m').value;
-  if(document.getElementById('f-owned-m').value)
-    document.getElementById('f-owned').value = document.getElementById('f-owned-m').value;
-  if(document.getElementById('f-order-m').value)
-    document.getElementById('f-order').value = document.getElementById('f-order-m').value;
-  if(document.getElementById('f-notes-m').value)
-    document.getElementById('f-notes').value = document.getElementById('f-notes-m').value;
-
-  calcQuote();
-  
-  // Mostrar resultado no mobile
-  const src = document.getElementById('q-summary');
-  const dst = document.getElementById('q-summary-mobile');
-  dst.innerHTML = src.innerHTML; dst.style.display='block';
-  document.getElementById('btn-gen-pdf-mobile').style.display='block';
-}
-
-function addCustomPedalMobile(){
-  const name  = document.getElementById('cp-name-m').value.trim() || 'Pedal Custom';
-  const wCm   = parseFloat(document.getElementById('cp-w-m').value) || 12;
-  const hCm   = parseFloat(document.getElementById('cp-h-m').value) || 7;
-  const color = document.getElementById('cp-color-m').value;
-  addPedalToCanvasCustom({Name:name, Brand:'Custom', Width:wCm/INCH_TO_CM, Height:hCm/INCH_TO_CM, customColor:color, isCustom:true});
-  document.getElementById('cp-name-m').value='';
-  document.getElementById('custom-pedal-form-mobile').style.display='none';
-  closeAllSheets();
-}
-
-function applyCustomBoardMobile(){
-  const w = parseFloat(document.getElementById('cust-w-m').value)||60;
-  const h = parseFloat(document.getElementById('cust-h-m').value)||30;
-  board={name:'Custom',w,h};
-  document.querySelectorAll('.board-item').forEach(el=>el.classList.remove('active'));
-  renderBoardSurface();
-  closeAllSheets();
-}
-
-function toggleCustomForm(){
-  const f1 = document.getElementById('custom-pedal-form');
-  const f2 = document.getElementById('custom-pedal-form-mobile');
-  if(f1) f1.classList.toggle('open');
-  if(f2) f2.style.display = f2.style.display==='none'?'block':'none';
-}
-
-// Inicializar presets de cor no mobile também
-function initColorPresets() {
-  [document.getElementById('color-presets'), document.getElementById('color-presets-mobile')].forEach(wrap=>{
-    if(!wrap) return;
-    wrap.innerHTML='';
-    PRESET_COLORS.forEach(color=>{
-      const dot=document.createElement('div'); dot.className='color-dot';
-      dot.style.background=color; dot.title=color;
-      dot.addEventListener('click',()=>{
-        const picker = wrap.id==='color-presets-mobile' ? 'cp-color-m' : 'cp-color';
-        document.getElementById(picker).value=color;
-        wrap.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('sel'));
-        dot.classList.add('sel');
-      });
-      wrap.appendChild(dot);
-    });
-    if(wrap.firstChild) wrap.firstChild.classList.add('sel');
-  });
-}
-
-// Touch: swipe down para fechar sheet
-document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(sheet=>{
-  let startY=0;
-  sheet.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;},{passive:true});
   sheet.addEventListener('touchend',e=>{
     const dy=e.changedTouches[0].clientY - startY;
     if(dy>60) closeAllSheets();
@@ -1650,6 +1014,14 @@ function calcQuote(){
 
 // ─── PDF ──────────────────────────────────────────────────
 async function openPDF(){
+  if(window.innerWidth<=900){
+    const sf=(mId,dId)=>{const m=document.getElementById(mId);const d=document.getElementById(dId);if(m&&d&&m.value)d.value=m.value;};
+    const sc=(mId,dId)=>{const m=document.getElementById(mId);const d=document.getElementById(dId);if(m&&d)d.checked=m.checked;};
+    sf('f-name-m','f-name');sf('f-cmplx-m','f-cmplx');
+    sc('f-src-m','f-src');sc('f-usb-m','f-usb');sc('f-jack-m','f-jack');
+    sf('f-src-info-m','f-src-info');sf('f-usb-type-m','f-usb-type');
+    sf('f-owned-m','f-owned');sf('f-order-m','f-order');sf('f-notes-m','f-notes');
+  }
   if(!quote)calcQuote();
   const chain=buildChain();
   const chainTxt=chain.length?[i('guitar'),...chain.map(({inst})=>inst.name),i('amp')].join(' → '):'';
@@ -1905,16 +1277,29 @@ function closeAllSheets(){
 }
 
 function syncPedalLibMobile(){
-  const src = document.getElementById('pedal-lib');
   const dst = document.getElementById('pedal-lib-mobile');
-  if(src && dst) dst.innerHTML = src.innerHTML;
-  // Re-attach click handlers
-  dst.querySelectorAll('.pedal-item').forEach((el,i)=>{
-    const srcItem = src ? src.querySelectorAll('.pedal-item')[i] : null;
-    el.addEventListener('click',()=>{
-      if(srcItem) srcItem.click();
-      closeAllSheets();
+  if(!dst || !pedalData.length) return;
+  const search = (document.querySelector('#sheet-pedals input')||{}).value || '';
+  const s = search.toLowerCase().trim();
+  const filtered = pedalData.filter(p=>!s||p.Name.toLowerCase().includes(s)||p.Brand.toLowerCase().includes(s));
+  const byBrand={};
+  filtered.forEach(p=>{if(!byBrand[p.Brand])byBrand[p.Brand]=[];byBrand[p.Brand].push(p);});
+  const brands=Object.keys(byBrand).sort();
+  dst.innerHTML='';
+  brands.forEach(brand=>{
+    const grp=document.createElement('div');grp.className='brand-group';
+    const hdr=document.createElement('div');hdr.className='brand-hdr';
+    hdr.innerHTML='<span>'+brand+'</span><span style="font-size:9px;color:var(--dim)">'+byBrand[brand].length+'</span>';
+    const its=document.createElement('div');its.className='brand-items'+(s?' open':'');
+    hdr.addEventListener('click',()=>its.classList.toggle('open'));
+    byBrand[brand].forEach(p=>{
+      const row=document.createElement('div');row.className='pedal-item';
+      const url=imgUrl(p.Image);
+      row.innerHTML=(url?'<img class="pedal-thumb" loading="lazy" src="'+url+'" onerror="this.style.display='none'">':'<div class="pedal-thumb-ph">'+p.Name.slice(0,8)+'</div>')+'<div class="pedal-info"><div class="pedal-name-li">'+p.Name+'</div><div class="pedal-dims-li">'+inToCm(p.Width)+'×'+inToCm(p.Height)+'cm</div></div>';
+      row.addEventListener('click',()=>{ addPedalToCanvas(p); closeAllSheets(); });
+      its.appendChild(row);
     });
+    grp.appendChild(hdr);grp.appendChild(its);dst.appendChild(grp);
   });
 }
 
