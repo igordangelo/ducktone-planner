@@ -61,7 +61,7 @@ input,select,textarea{font-family:var(--sans);outline:none}
 .sb-search input::placeholder{color:var(--dim)}
 .sb-pane{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 .sb-pane.hidden{display:none}
-.sb-body{flex:1;overflow-y:auto;min-height:0}
+.sb-body{flex:1;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch}
 
 /* Pedal library */
 .brand-grp{border-bottom:1px solid rgba(216,176,122,.06)}
@@ -84,8 +84,8 @@ input,select,textarea{font-family:var(--sans);outline:none}
 #pedal-count{font-size:9px;color:var(--dim);padding:4px 10px;text-align:center;flex-shrink:0}
 
 /* Custom pedal (pinado no rodapé do pane-pedals) */
-.cp-section{border-top:1px solid var(--bdr);flex-shrink:0;background:var(--dark2)}
-.cp-toggle{width:100%;background:none;border:none;border-top:none;color:var(--dim);
+.cp-section{border-top:1px solid var(--bdr);flex-shrink:0;background:var(--dark2);overflow-y:auto;max-height:60vh}
+.cp-toggle{width:100%;background:none;border:none;color:var(--dim);
   font-size:10px;font-family:var(--title);letter-spacing:1px;padding:7px;
   text-align:center;cursor:pointer;transition:all .12s;border-bottom:1px dashed var(--bdr)}
 .cp-toggle:hover{color:var(--gold)}
@@ -113,7 +113,7 @@ input,select,textarea{font-family:var(--sans);outline:none}
 .b-name{font-family:var(--title);font-size:12px;letter-spacing:1px}
 .b-dims{font-size:9px;color:var(--gold);margin-top:1px}
 .board-item img{width:100%;max-height:40px;object-fit:cover;border-radius:2px;margin-top:4px;opacity:.6}
-.custom-board{border-top:1px solid var(--bdr);padding:9px;flex-shrink:0;background:var(--dark2)}
+.custom-board{border-top:1px solid var(--bdr);padding:9px;flex-shrink:0;background:var(--dark2);overflow-y:auto}
 .cb-lbl{font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:2px}
 .cb-row{display:flex;gap:5px;margin-bottom:6px}
 .cb-inp{flex:1;background:var(--dark3);border:1px solid var(--bdr2);color:var(--beige);
@@ -158,19 +158,25 @@ input,select,textarea{font-family:var(--sans);outline:none}
 .art-img.loaded{opacity:1}
 .anchors{position:absolute;inset:-7px;pointer-events:none;z-index:15}
 .c-item:hover .anchors,.c-item.selected .anchors{pointer-events:all}
-.anc{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--gold);
-  border:2px solid var(--dark);cursor:crosshair;opacity:0;transition:opacity .15s,transform .12s;transform:scale(.5)}
+.anc{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--gold);
+  border:2px solid var(--dark);cursor:crosshair;transition:opacity .15s,transform .12s;
+  opacity:0;transform:scale(0.5)}
+/* L e R sempre visíveis como pontinhos pequenos */
+.c-item .anc-l,.c-item .anc-r{opacity:.55;transform:translateY(-50%) scale(0.7)}
 .c-item:hover .anc,.c-item.selected .anc{opacity:1;transform:scale(1)}
+.c-item:hover .anc-l,.c-item:hover .anc-r,
+.c-item.selected .anc-l,.c-item.selected .anc-r{opacity:1;transform:translateY(-50%) scale(1)}
 .conn-mode .anc{opacity:1 !important;transform:scale(1) !important;background:var(--grn)}
-.anc:hover{transform:scale(1.5) !important;background:var(--gold2);box-shadow:0 0 6px var(--gold)}
-.anc-l{left:0;top:50%;margin-top:-6px}
-.anc-r{right:0;top:50%;margin-top:-6px}
-.anc-t{top:0;left:50%;margin-left:-6px}
-.anc-b{bottom:0;left:50%;margin-left:-6px}
-.anc-tl{top:0;left:0}
-.anc-tr{top:0;right:0}
-.anc-bl{bottom:0;left:0}
-.anc-br{bottom:0;right:0}
+.conn-mode .anc-l,.conn-mode .anc-r{transform:translateY(-50%) scale(1) !important}
+.anc:hover{transform:scale(1.6) !important;background:var(--gold2);box-shadow:0 0 7px var(--gold)}
+.anc-l{left:-5px;top:50%;transform:translateY(-50%) scale(0.7)}
+.anc-r{right:-5px;top:50%;transform:translateY(-50%) scale(0.7)}
+.anc-t{top:-5px;left:50%;margin-left:-5px}
+.anc-b{bottom:-5px;left:50%;margin-left:-5px}
+.anc-tl{top:-5px;left:-5px}
+.anc-tr{top:-5px;right:-5px}
+.anc-bl{bottom:-5px;left:-5px}
+.anc-br{bottom:-5px;right:-5px}
 .c-item.r90  .artwork{transform:rotate(90deg)}
 .c-item.r180 .artwork{transform:rotate(180deg)}
 .c-item.r270 .artwork{transform:rotate(270deg)}
@@ -354,14 +360,14 @@ input,select,textarea{font-family:var(--sans);outline:none}
     <div id="toolbar">
       <span id="board-info">Board: 60 × 30 cm</span>
       <div class="tgap"></div>
-      <button class="tb" onclick="adjZoom(-0.1)">−</button>
+      <button class="tb" onclick="adjZoom(-0.1)" title="Zoom −">−</button>
       <span id="zoom-val">100%</span>
-      <button class="tb" onclick="adjZoom(0.1)">+</button>
+      <button class="tb" onclick="adjZoom(0.1)" title="Zoom +">+</button>
       <button class="tb" onclick="adjZoom(0,'reset')" title="Reset zoom">⊙</button>
       <div class="tgap"></div>
-      <div id="conn-bar">
-        ⚡ Clique em qualquer ponto de outro pedal &nbsp;
-        <button class="tb" onclick="cancelConn()" style="font-size:10px;width:auto;padding:0 7px">ESC</button>
+      <div id="conn-bar" style="display:none;align-items:center;gap:5px;padding:0 8px;background:rgba(192,57,43,.12);border:1px solid var(--red);border-radius:2px;font-size:10px;color:var(--red);font-weight:700;letter-spacing:1px;animation:blink 1.2s infinite">
+        ⚡ Clique em qualquer ponto dourado de outro pedal &nbsp;
+        <button class="tb" onclick="cancelConn()" style="font-size:10px;width:auto;padding:0 7px">ESC / Cancelar</button>
       </div>
     </div>
     <div id="canvas-viewport">
