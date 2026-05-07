@@ -6,10 +6,674 @@
 <title>DuckTone Board Planner — Custom Boards</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/draggabilly/3.0.0/draggabilly.pkgd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js">
+// ═══════════════════════════════════════════════════════
+// MOBILE
+// ═══════════════════════════════════════════════════════
+function isMobile(){ return window.innerWidth <= 900; }
+
+function openSheet(sheetId, btnId){
+  const alreadyOpen = document.getElementById(sheetId).classList.contains('open');
+  closeAllSheets();
+  if(!alreadyOpen){
+    document.getElementById(sheetId).classList.add('open');
+    document.getElementById('sheet-overlay').classList.add('open');
+    if(btnId) document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('active', b.id===btnId));
+    // Sincronizar listas mobile com as do desktop
+    if(sheetId==='sheet-pedals') syncPedalLibMobile();
+    if(sheetId==='sheet-boards') syncBoardLibMobile();
+    if(sheetId==='sheet-chain') syncChainMobile();
+  }
+}
+
+function closeAllSheets(){
+  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
+  document.getElementById('sheet-overlay').classList.remove('open');
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+}
+
+function syncPedalLibMobile(){
+  const src = document.getElementById('pedal-lib');
+  const dst = document.getElementById('pedal-lib-mobile');
+  if(src && dst) dst.innerHTML = src.innerHTML;
+  // Re-attach click handlers
+  dst.querySelectorAll('.pedal-item').forEach((el,i)=>{
+    const srcItem = src ? src.querySelectorAll('.pedal-item')[i] : null;
+    el.addEventListener('click',()=>{
+      if(srcItem) srcItem.click();
+      closeAllSheets();
+    });
+  });
+}
+
+function syncBoardLibMobile(){
+  const src = document.getElementById('board-lib');
+  const dst = document.getElementById('board-lib-mobile');
+  if(src && dst) dst.innerHTML = src.innerHTML;
+  dst.querySelectorAll('.board-item').forEach((el,i)=>{
+    const srcItem = src ? src.querySelectorAll('.board-item')[i] : null;
+    el.addEventListener('click',()=>{
+      if(srcItem) srcItem.click();
+      closeAllSheets();
+    });
+  });
+}
+
+function syncChainMobile(){
+  const chain = buildChain();
+  const listEl = document.getElementById('chain-list-mobile');
+  const fullEl = document.getElementById('chain-full-mobile');
+  const totalEl = document.getElementById('chain-total-mobile');
+  listEl.innerHTML = '';
+  if(!chain.length){
+    listEl.innerHTML = '<div class="chain-empty">Conecte os pedais para ver a cadeia.</div>';
+    fullEl.style.display='none'; totalEl.style.display='none'; return;
+  }
+  let totalLen=0;
+  chain.forEach(({inst,connOut},idx)=>{
+    const row=document.createElement('div'); row.className='chain-row';
+    row.innerHTML='<span class="chain-n">'+(idx+1)+'</span><span class="chain-nm">'+inst.brand+' '+inst.name+'</span>'+(connOut?'<span class="chain-len">'+connOut.lenCm+'cm</span>':'');
+    listEl.appendChild(row);
+    if(connOut) totalLen+=connOut.lenCm;
+  });
+  const parts=[i('guitar'),...chain.map(({inst})=>inst.name),i('amp')];
+  fullEl.textContent=parts.join(' → '); fullEl.style.display='block';
+  totalEl.textContent='Total: '+totalLen+'cm · '+conns.length+' cabo(s)'; totalEl.style.display='block';
+}
+
+function calcQuoteMobile(){
+  // Pegar valores dos campos mobile
+  const nm = document.getElementById('f-name-m').value;
+  const cmplx = document.getElementById('f-cmplx-m').value;
+  const hasSrc = document.getElementById('f-src-m').checked;
+  const needUsb = document.getElementById('f-usb-m').checked;
+  const needJack = document.getElementById('f-jack-m').checked;
+  
+  // Sincronizar com campos desktop
+  document.getElementById('f-name').value = nm;
+  document.getElementById('f-cmplx').value = cmplx;
+  document.getElementById('f-src').checked = hasSrc;
+  document.getElementById('f-usb').checked = needUsb;
+  document.getElementById('f-jack').checked = needJack;
+  if(document.getElementById('f-src-info-m').value)
+    document.getElementById('f-src-info').value = document.getElementById('f-src-info-m').value;
+  if(document.getElementById('f-usb-type-m').value)
+    document.getElementById('f-usb-type').value = document.getElementById('f-usb-type-m').value;
+  if(document.getElementById('f-owned-m').value)
+    document.getElementById('f-owned').value = document.getElementById('f-owned-m').value;
+  if(document.getElementById('f-order-m').value)
+    document.getElementById('f-order').value = document.getElementById('f-order-m').value;
+  if(document.getElementById('f-notes-m').value)
+    document.getElementById('f-notes').value = document.getElementById('f-notes-m').value;
+
+  calcQuote();
+  
+  // Mostrar resultado no mobile
+  const src = document.getElementById('q-summary');
+  const dst = document.getElementById('q-summary-mobile');
+  dst.innerHTML = src.innerHTML; dst.style.display='block';
+  document.getElementById('btn-gen-pdf-mobile').style.display='block';
+}
+
+function addCustomPedalMobile(){
+  const name  = document.getElementById('cp-name-m').value.trim() || 'Pedal Custom';
+  const wCm   = parseFloat(document.getElementById('cp-w-m').value) || 12;
+  const hCm   = parseFloat(document.getElementById('cp-h-m').value) || 7;
+  const color = document.getElementById('cp-color-m').value;
+  addPedalToCanvasCustom({Name:name, Brand:'Custom', Width:wCm/INCH_TO_CM, Height:hCm/INCH_TO_CM, customColor:color, isCustom:true});
+  document.getElementById('cp-name-m').value='';
+  document.getElementById('custom-pedal-form-mobile').style.display='none';
+  closeAllSheets();
+}
+
+function applyCustomBoardMobile(){
+  const w = parseFloat(document.getElementById('cust-w-m').value)||60;
+  const h = parseFloat(document.getElementById('cust-h-m').value)||30;
+  board={name:'Custom',w,h};
+  document.querySelectorAll('.board-item').forEach(el=>el.classList.remove('active'));
+  renderBoardSurface();
+  closeAllSheets();
+}
+
+function toggleCustomForm(){
+  const f1 = document.getElementById('custom-pedal-form');
+  const f2 = document.getElementById('custom-pedal-form-mobile');
+  if(f1) f1.classList.toggle('open');
+  if(f2) f2.style.display = f2.style.display==='none'?'block':'none';
+}
+
+// Inicializar presets de cor no mobile também
+function initColorPresets() {
+  [document.getElementById('color-presets'), document.getElementById('color-presets-mobile')].forEach(wrap=>{
+    if(!wrap) return;
+    wrap.innerHTML='';
+    PRESET_COLORS.forEach(color=>{
+      const dot=document.createElement('div'); dot.className='color-dot';
+      dot.style.background=color; dot.title=color;
+      dot.addEventListener('click',()=>{
+        const picker = wrap.id==='color-presets-mobile' ? 'cp-color-m' : 'cp-color';
+        document.getElementById(picker).value=color;
+        wrap.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('sel'));
+        dot.classList.add('sel');
+      });
+      wrap.appendChild(dot);
+    });
+    if(wrap.firstChild) wrap.firstChild.classList.add('sel');
+  });
+}
+
+// Touch: swipe down para fechar sheet
+document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(sheet=>{
+  let startY=0;
+  sheet.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;},{passive:true});
+  sheet.addEventListener('touchend',e=>{
+    const dy=e.changedTouches[0].clientY - startY;
+    if(dy>60) closeAllSheets();
+  },{passive:true});
+});
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/draggabilly/3.0.0/draggabilly.pkgd.min.js">
+// ═══════════════════════════════════════════════════════
+// MOBILE
+// ═══════════════════════════════════════════════════════
+function isMobile(){ return window.innerWidth <= 900; }
+
+function openSheet(sheetId, btnId){
+  const alreadyOpen = document.getElementById(sheetId).classList.contains('open');
+  closeAllSheets();
+  if(!alreadyOpen){
+    document.getElementById(sheetId).classList.add('open');
+    document.getElementById('sheet-overlay').classList.add('open');
+    if(btnId) document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('active', b.id===btnId));
+    // Sincronizar listas mobile com as do desktop
+    if(sheetId==='sheet-pedals') syncPedalLibMobile();
+    if(sheetId==='sheet-boards') syncBoardLibMobile();
+    if(sheetId==='sheet-chain') syncChainMobile();
+  }
+}
+
+function closeAllSheets(){
+  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
+  document.getElementById('sheet-overlay').classList.remove('open');
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+}
+
+function syncPedalLibMobile(){
+  const src = document.getElementById('pedal-lib');
+  const dst = document.getElementById('pedal-lib-mobile');
+  if(src && dst) dst.innerHTML = src.innerHTML;
+  // Re-attach click handlers
+  dst.querySelectorAll('.pedal-item').forEach((el,i)=>{
+    const srcItem = src ? src.querySelectorAll('.pedal-item')[i] : null;
+    el.addEventListener('click',()=>{
+      if(srcItem) srcItem.click();
+      closeAllSheets();
+    });
+  });
+}
+
+function syncBoardLibMobile(){
+  const src = document.getElementById('board-lib');
+  const dst = document.getElementById('board-lib-mobile');
+  if(src && dst) dst.innerHTML = src.innerHTML;
+  dst.querySelectorAll('.board-item').forEach((el,i)=>{
+    const srcItem = src ? src.querySelectorAll('.board-item')[i] : null;
+    el.addEventListener('click',()=>{
+      if(srcItem) srcItem.click();
+      closeAllSheets();
+    });
+  });
+}
+
+function syncChainMobile(){
+  const chain = buildChain();
+  const listEl = document.getElementById('chain-list-mobile');
+  const fullEl = document.getElementById('chain-full-mobile');
+  const totalEl = document.getElementById('chain-total-mobile');
+  listEl.innerHTML = '';
+  if(!chain.length){
+    listEl.innerHTML = '<div class="chain-empty">Conecte os pedais para ver a cadeia.</div>';
+    fullEl.style.display='none'; totalEl.style.display='none'; return;
+  }
+  let totalLen=0;
+  chain.forEach(({inst,connOut},idx)=>{
+    const row=document.createElement('div'); row.className='chain-row';
+    row.innerHTML='<span class="chain-n">'+(idx+1)+'</span><span class="chain-nm">'+inst.brand+' '+inst.name+'</span>'+(connOut?'<span class="chain-len">'+connOut.lenCm+'cm</span>':'');
+    listEl.appendChild(row);
+    if(connOut) totalLen+=connOut.lenCm;
+  });
+  const parts=[i('guitar'),...chain.map(({inst})=>inst.name),i('amp')];
+  fullEl.textContent=parts.join(' → '); fullEl.style.display='block';
+  totalEl.textContent='Total: '+totalLen+'cm · '+conns.length+' cabo(s)'; totalEl.style.display='block';
+}
+
+function calcQuoteMobile(){
+  // Pegar valores dos campos mobile
+  const nm = document.getElementById('f-name-m').value;
+  const cmplx = document.getElementById('f-cmplx-m').value;
+  const hasSrc = document.getElementById('f-src-m').checked;
+  const needUsb = document.getElementById('f-usb-m').checked;
+  const needJack = document.getElementById('f-jack-m').checked;
+  
+  // Sincronizar com campos desktop
+  document.getElementById('f-name').value = nm;
+  document.getElementById('f-cmplx').value = cmplx;
+  document.getElementById('f-src').checked = hasSrc;
+  document.getElementById('f-usb').checked = needUsb;
+  document.getElementById('f-jack').checked = needJack;
+  if(document.getElementById('f-src-info-m').value)
+    document.getElementById('f-src-info').value = document.getElementById('f-src-info-m').value;
+  if(document.getElementById('f-usb-type-m').value)
+    document.getElementById('f-usb-type').value = document.getElementById('f-usb-type-m').value;
+  if(document.getElementById('f-owned-m').value)
+    document.getElementById('f-owned').value = document.getElementById('f-owned-m').value;
+  if(document.getElementById('f-order-m').value)
+    document.getElementById('f-order').value = document.getElementById('f-order-m').value;
+  if(document.getElementById('f-notes-m').value)
+    document.getElementById('f-notes').value = document.getElementById('f-notes-m').value;
+
+  calcQuote();
+  
+  // Mostrar resultado no mobile
+  const src = document.getElementById('q-summary');
+  const dst = document.getElementById('q-summary-mobile');
+  dst.innerHTML = src.innerHTML; dst.style.display='block';
+  document.getElementById('btn-gen-pdf-mobile').style.display='block';
+}
+
+function addCustomPedalMobile(){
+  const name  = document.getElementById('cp-name-m').value.trim() || 'Pedal Custom';
+  const wCm   = parseFloat(document.getElementById('cp-w-m').value) || 12;
+  const hCm   = parseFloat(document.getElementById('cp-h-m').value) || 7;
+  const color = document.getElementById('cp-color-m').value;
+  addPedalToCanvasCustom({Name:name, Brand:'Custom', Width:wCm/INCH_TO_CM, Height:hCm/INCH_TO_CM, customColor:color, isCustom:true});
+  document.getElementById('cp-name-m').value='';
+  document.getElementById('custom-pedal-form-mobile').style.display='none';
+  closeAllSheets();
+}
+
+function applyCustomBoardMobile(){
+  const w = parseFloat(document.getElementById('cust-w-m').value)||60;
+  const h = parseFloat(document.getElementById('cust-h-m').value)||30;
+  board={name:'Custom',w,h};
+  document.querySelectorAll('.board-item').forEach(el=>el.classList.remove('active'));
+  renderBoardSurface();
+  closeAllSheets();
+}
+
+function toggleCustomForm(){
+  const f1 = document.getElementById('custom-pedal-form');
+  const f2 = document.getElementById('custom-pedal-form-mobile');
+  if(f1) f1.classList.toggle('open');
+  if(f2) f2.style.display = f2.style.display==='none'?'block':'none';
+}
+
+// Inicializar presets de cor no mobile também
+function initColorPresets() {
+  [document.getElementById('color-presets'), document.getElementById('color-presets-mobile')].forEach(wrap=>{
+    if(!wrap) return;
+    wrap.innerHTML='';
+    PRESET_COLORS.forEach(color=>{
+      const dot=document.createElement('div'); dot.className='color-dot';
+      dot.style.background=color; dot.title=color;
+      dot.addEventListener('click',()=>{
+        const picker = wrap.id==='color-presets-mobile' ? 'cp-color-m' : 'cp-color';
+        document.getElementById(picker).value=color;
+        wrap.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('sel'));
+        dot.classList.add('sel');
+      });
+      wrap.appendChild(dot);
+    });
+    if(wrap.firstChild) wrap.firstChild.classList.add('sel');
+  });
+}
+
+// Touch: swipe down para fechar sheet
+document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(sheet=>{
+  let startY=0;
+  sheet.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;},{passive:true});
+  sheet.addEventListener('touchend',e=>{
+    const dy=e.changedTouches[0].clientY - startY;
+    if(dy>60) closeAllSheets();
+  },{passive:true});
+});
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
+// ═══════════════════════════════════════════════════════
+// MOBILE
+// ═══════════════════════════════════════════════════════
+function isMobile(){ return window.innerWidth <= 900; }
+
+function openSheet(sheetId, btnId){
+  const alreadyOpen = document.getElementById(sheetId).classList.contains('open');
+  closeAllSheets();
+  if(!alreadyOpen){
+    document.getElementById(sheetId).classList.add('open');
+    document.getElementById('sheet-overlay').classList.add('open');
+    if(btnId) document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('active', b.id===btnId));
+    // Sincronizar listas mobile com as do desktop
+    if(sheetId==='sheet-pedals') syncPedalLibMobile();
+    if(sheetId==='sheet-boards') syncBoardLibMobile();
+    if(sheetId==='sheet-chain') syncChainMobile();
+  }
+}
+
+function closeAllSheets(){
+  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
+  document.getElementById('sheet-overlay').classList.remove('open');
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+}
+
+function syncPedalLibMobile(){
+  const src = document.getElementById('pedal-lib');
+  const dst = document.getElementById('pedal-lib-mobile');
+  if(src && dst) dst.innerHTML = src.innerHTML;
+  // Re-attach click handlers
+  dst.querySelectorAll('.pedal-item').forEach((el,i)=>{
+    const srcItem = src ? src.querySelectorAll('.pedal-item')[i] : null;
+    el.addEventListener('click',()=>{
+      if(srcItem) srcItem.click();
+      closeAllSheets();
+    });
+  });
+}
+
+function syncBoardLibMobile(){
+  const src = document.getElementById('board-lib');
+  const dst = document.getElementById('board-lib-mobile');
+  if(src && dst) dst.innerHTML = src.innerHTML;
+  dst.querySelectorAll('.board-item').forEach((el,i)=>{
+    const srcItem = src ? src.querySelectorAll('.board-item')[i] : null;
+    el.addEventListener('click',()=>{
+      if(srcItem) srcItem.click();
+      closeAllSheets();
+    });
+  });
+}
+
+function syncChainMobile(){
+  const chain = buildChain();
+  const listEl = document.getElementById('chain-list-mobile');
+  const fullEl = document.getElementById('chain-full-mobile');
+  const totalEl = document.getElementById('chain-total-mobile');
+  listEl.innerHTML = '';
+  if(!chain.length){
+    listEl.innerHTML = '<div class="chain-empty">Conecte os pedais para ver a cadeia.</div>';
+    fullEl.style.display='none'; totalEl.style.display='none'; return;
+  }
+  let totalLen=0;
+  chain.forEach(({inst,connOut},idx)=>{
+    const row=document.createElement('div'); row.className='chain-row';
+    row.innerHTML='<span class="chain-n">'+(idx+1)+'</span><span class="chain-nm">'+inst.brand+' '+inst.name+'</span>'+(connOut?'<span class="chain-len">'+connOut.lenCm+'cm</span>':'');
+    listEl.appendChild(row);
+    if(connOut) totalLen+=connOut.lenCm;
+  });
+  const parts=[i('guitar'),...chain.map(({inst})=>inst.name),i('amp')];
+  fullEl.textContent=parts.join(' → '); fullEl.style.display='block';
+  totalEl.textContent='Total: '+totalLen+'cm · '+conns.length+' cabo(s)'; totalEl.style.display='block';
+}
+
+function calcQuoteMobile(){
+  // Pegar valores dos campos mobile
+  const nm = document.getElementById('f-name-m').value;
+  const cmplx = document.getElementById('f-cmplx-m').value;
+  const hasSrc = document.getElementById('f-src-m').checked;
+  const needUsb = document.getElementById('f-usb-m').checked;
+  const needJack = document.getElementById('f-jack-m').checked;
+  
+  // Sincronizar com campos desktop
+  document.getElementById('f-name').value = nm;
+  document.getElementById('f-cmplx').value = cmplx;
+  document.getElementById('f-src').checked = hasSrc;
+  document.getElementById('f-usb').checked = needUsb;
+  document.getElementById('f-jack').checked = needJack;
+  if(document.getElementById('f-src-info-m').value)
+    document.getElementById('f-src-info').value = document.getElementById('f-src-info-m').value;
+  if(document.getElementById('f-usb-type-m').value)
+    document.getElementById('f-usb-type').value = document.getElementById('f-usb-type-m').value;
+  if(document.getElementById('f-owned-m').value)
+    document.getElementById('f-owned').value = document.getElementById('f-owned-m').value;
+  if(document.getElementById('f-order-m').value)
+    document.getElementById('f-order').value = document.getElementById('f-order-m').value;
+  if(document.getElementById('f-notes-m').value)
+    document.getElementById('f-notes').value = document.getElementById('f-notes-m').value;
+
+  calcQuote();
+  
+  // Mostrar resultado no mobile
+  const src = document.getElementById('q-summary');
+  const dst = document.getElementById('q-summary-mobile');
+  dst.innerHTML = src.innerHTML; dst.style.display='block';
+  document.getElementById('btn-gen-pdf-mobile').style.display='block';
+}
+
+function addCustomPedalMobile(){
+  const name  = document.getElementById('cp-name-m').value.trim() || 'Pedal Custom';
+  const wCm   = parseFloat(document.getElementById('cp-w-m').value) || 12;
+  const hCm   = parseFloat(document.getElementById('cp-h-m').value) || 7;
+  const color = document.getElementById('cp-color-m').value;
+  addPedalToCanvasCustom({Name:name, Brand:'Custom', Width:wCm/INCH_TO_CM, Height:hCm/INCH_TO_CM, customColor:color, isCustom:true});
+  document.getElementById('cp-name-m').value='';
+  document.getElementById('custom-pedal-form-mobile').style.display='none';
+  closeAllSheets();
+}
+
+function applyCustomBoardMobile(){
+  const w = parseFloat(document.getElementById('cust-w-m').value)||60;
+  const h = parseFloat(document.getElementById('cust-h-m').value)||30;
+  board={name:'Custom',w,h};
+  document.querySelectorAll('.board-item').forEach(el=>el.classList.remove('active'));
+  renderBoardSurface();
+  closeAllSheets();
+}
+
+function toggleCustomForm(){
+  const f1 = document.getElementById('custom-pedal-form');
+  const f2 = document.getElementById('custom-pedal-form-mobile');
+  if(f1) f1.classList.toggle('open');
+  if(f2) f2.style.display = f2.style.display==='none'?'block':'none';
+}
+
+// Inicializar presets de cor no mobile também
+function initColorPresets() {
+  [document.getElementById('color-presets'), document.getElementById('color-presets-mobile')].forEach(wrap=>{
+    if(!wrap) return;
+    wrap.innerHTML='';
+    PRESET_COLORS.forEach(color=>{
+      const dot=document.createElement('div'); dot.className='color-dot';
+      dot.style.background=color; dot.title=color;
+      dot.addEventListener('click',()=>{
+        const picker = wrap.id==='color-presets-mobile' ? 'cp-color-m' : 'cp-color';
+        document.getElementById(picker).value=color;
+        wrap.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('sel'));
+        dot.classList.add('sel');
+      });
+      wrap.appendChild(dot);
+    });
+    if(wrap.firstChild) wrap.firstChild.classList.add('sel');
+  });
+}
+
+// Touch: swipe down para fechar sheet
+document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(sheet=>{
+  let startY=0;
+  sheet.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;},{passive:true});
+  sheet.addEventListener('touchend',e=>{
+    const dy=e.changedTouches[0].clientY - startY;
+    if(dy>60) closeAllSheets();
+  },{passive:true});
+});
+
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+// ═══════════════════════════════════════════════════════
+// MOBILE
+// ═══════════════════════════════════════════════════════
+function isMobile(){ return window.innerWidth <= 900; }
+
+function openSheet(sheetId, btnId){
+  const alreadyOpen = document.getElementById(sheetId).classList.contains('open');
+  closeAllSheets();
+  if(!alreadyOpen){
+    document.getElementById(sheetId).classList.add('open');
+    document.getElementById('sheet-overlay').classList.add('open');
+    if(btnId) document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('active', b.id===btnId));
+    // Sincronizar listas mobile com as do desktop
+    if(sheetId==='sheet-pedals') syncPedalLibMobile();
+    if(sheetId==='sheet-boards') syncBoardLibMobile();
+    if(sheetId==='sheet-chain') syncChainMobile();
+  }
+}
+
+function closeAllSheets(){
+  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
+  document.getElementById('sheet-overlay').classList.remove('open');
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+}
+
+function syncPedalLibMobile(){
+  const src = document.getElementById('pedal-lib');
+  const dst = document.getElementById('pedal-lib-mobile');
+  if(src && dst) dst.innerHTML = src.innerHTML;
+  // Re-attach click handlers
+  dst.querySelectorAll('.pedal-item').forEach((el,i)=>{
+    const srcItem = src ? src.querySelectorAll('.pedal-item')[i] : null;
+    el.addEventListener('click',()=>{
+      if(srcItem) srcItem.click();
+      closeAllSheets();
+    });
+  });
+}
+
+function syncBoardLibMobile(){
+  const src = document.getElementById('board-lib');
+  const dst = document.getElementById('board-lib-mobile');
+  if(src && dst) dst.innerHTML = src.innerHTML;
+  dst.querySelectorAll('.board-item').forEach((el,i)=>{
+    const srcItem = src ? src.querySelectorAll('.board-item')[i] : null;
+    el.addEventListener('click',()=>{
+      if(srcItem) srcItem.click();
+      closeAllSheets();
+    });
+  });
+}
+
+function syncChainMobile(){
+  const chain = buildChain();
+  const listEl = document.getElementById('chain-list-mobile');
+  const fullEl = document.getElementById('chain-full-mobile');
+  const totalEl = document.getElementById('chain-total-mobile');
+  listEl.innerHTML = '';
+  if(!chain.length){
+    listEl.innerHTML = '<div class="chain-empty">Conecte os pedais para ver a cadeia.</div>';
+    fullEl.style.display='none'; totalEl.style.display='none'; return;
+  }
+  let totalLen=0;
+  chain.forEach(({inst,connOut},idx)=>{
+    const row=document.createElement('div'); row.className='chain-row';
+    row.innerHTML='<span class="chain-n">'+(idx+1)+'</span><span class="chain-nm">'+inst.brand+' '+inst.name+'</span>'+(connOut?'<span class="chain-len">'+connOut.lenCm+'cm</span>':'');
+    listEl.appendChild(row);
+    if(connOut) totalLen+=connOut.lenCm;
+  });
+  const parts=[i('guitar'),...chain.map(({inst})=>inst.name),i('amp')];
+  fullEl.textContent=parts.join(' → '); fullEl.style.display='block';
+  totalEl.textContent='Total: '+totalLen+'cm · '+conns.length+' cabo(s)'; totalEl.style.display='block';
+}
+
+function calcQuoteMobile(){
+  // Pegar valores dos campos mobile
+  const nm = document.getElementById('f-name-m').value;
+  const cmplx = document.getElementById('f-cmplx-m').value;
+  const hasSrc = document.getElementById('f-src-m').checked;
+  const needUsb = document.getElementById('f-usb-m').checked;
+  const needJack = document.getElementById('f-jack-m').checked;
+  
+  // Sincronizar com campos desktop
+  document.getElementById('f-name').value = nm;
+  document.getElementById('f-cmplx').value = cmplx;
+  document.getElementById('f-src').checked = hasSrc;
+  document.getElementById('f-usb').checked = needUsb;
+  document.getElementById('f-jack').checked = needJack;
+  if(document.getElementById('f-src-info-m').value)
+    document.getElementById('f-src-info').value = document.getElementById('f-src-info-m').value;
+  if(document.getElementById('f-usb-type-m').value)
+    document.getElementById('f-usb-type').value = document.getElementById('f-usb-type-m').value;
+  if(document.getElementById('f-owned-m').value)
+    document.getElementById('f-owned').value = document.getElementById('f-owned-m').value;
+  if(document.getElementById('f-order-m').value)
+    document.getElementById('f-order').value = document.getElementById('f-order-m').value;
+  if(document.getElementById('f-notes-m').value)
+    document.getElementById('f-notes').value = document.getElementById('f-notes-m').value;
+
+  calcQuote();
+  
+  // Mostrar resultado no mobile
+  const src = document.getElementById('q-summary');
+  const dst = document.getElementById('q-summary-mobile');
+  dst.innerHTML = src.innerHTML; dst.style.display='block';
+  document.getElementById('btn-gen-pdf-mobile').style.display='block';
+}
+
+function addCustomPedalMobile(){
+  const name  = document.getElementById('cp-name-m').value.trim() || 'Pedal Custom';
+  const wCm   = parseFloat(document.getElementById('cp-w-m').value) || 12;
+  const hCm   = parseFloat(document.getElementById('cp-h-m').value) || 7;
+  const color = document.getElementById('cp-color-m').value;
+  addPedalToCanvasCustom({Name:name, Brand:'Custom', Width:wCm/INCH_TO_CM, Height:hCm/INCH_TO_CM, customColor:color, isCustom:true});
+  document.getElementById('cp-name-m').value='';
+  document.getElementById('custom-pedal-form-mobile').style.display='none';
+  closeAllSheets();
+}
+
+function applyCustomBoardMobile(){
+  const w = parseFloat(document.getElementById('cust-w-m').value)||60;
+  const h = parseFloat(document.getElementById('cust-h-m').value)||30;
+  board={name:'Custom',w,h};
+  document.querySelectorAll('.board-item').forEach(el=>el.classList.remove('active'));
+  renderBoardSurface();
+  closeAllSheets();
+}
+
+function toggleCustomForm(){
+  const f1 = document.getElementById('custom-pedal-form');
+  const f2 = document.getElementById('custom-pedal-form-mobile');
+  if(f1) f1.classList.toggle('open');
+  if(f2) f2.style.display = f2.style.display==='none'?'block':'none';
+}
+
+// Inicializar presets de cor no mobile também
+function initColorPresets() {
+  [document.getElementById('color-presets'), document.getElementById('color-presets-mobile')].forEach(wrap=>{
+    if(!wrap) return;
+    wrap.innerHTML='';
+    PRESET_COLORS.forEach(color=>{
+      const dot=document.createElement('div'); dot.className='color-dot';
+      dot.style.background=color; dot.title=color;
+      dot.addEventListener('click',()=>{
+        const picker = wrap.id==='color-presets-mobile' ? 'cp-color-m' : 'cp-color';
+        document.getElementById(picker).value=color;
+        wrap.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('sel'));
+        dot.classList.add('sel');
+      });
+      wrap.appendChild(dot);
+    });
+    if(wrap.firstChild) wrap.firstChild.classList.add('sel');
+  });
+}
+
+// Touch: swipe down para fechar sheet
+document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(sheet=>{
+  let startY=0;
+  sheet.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;},{passive:true});
+  sheet.addEventListener('touchend',e=>{
+    const dy=e.changedTouches[0].clientY - startY;
+    if(dy>60) closeAllSheets();
+  },{passive:true});
+});
+
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -257,6 +921,163 @@ input,select,textarea{font-family:var(--sans);outline:none}
 .pdf-actions button{flex:1;padding:10px;border-radius:3px;font-weight:600;font-size:12px;letter-spacing:1px}
 .pdf-dl{background:#D8B07A;color:#221C1B;border:none}
 .pdf-cl{background:none;border:1px solid #ccc;color:#555}
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE & TABLET — max-width: 900px
+═══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+
+  /* Header compacto */
+  #hdr { height: 46px; padding: 0 10px; gap: 8px; }
+  .hdr-brand-name { font-size: 15px; }
+  .hdr-brand-sub { display: none; }
+  .duck-icon { height: 30px; width: 30px; }
+  .hdr-btn { font-size: 11px; padding: 4px 10px; }
+  .lang-wrap { display: none; }
+
+  /* Layout principal: canvas full screen */
+  #main { flex-direction: column; position: relative; }
+  #lsb  { display: none; }
+  #rpanel { display: none; }
+
+  /* Canvas ocupa tudo */
+  #canvas-area { flex: 1; }
+  #canvas-toolbar { height: 36px; padding: 0 8px; gap: 6px; }
+  .tb-info { font-size: 10px; }
+  .conn-mode-bar { font-size: 9px; }
+
+  /* Bottom navigation */
+  #bottom-nav {
+    display: flex;
+    height: 56px;
+    flex-shrink: 0;
+    background: var(--dark2);
+    border-top: 1px solid var(--bdr2);
+    z-index: 300;
+  }
+  .bnav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    color: var(--dim);
+    font-family: var(--title);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: color .15s;
+    cursor: pointer;
+    border-top: 2px solid transparent;
+  }
+  .bnav-btn.active { color: var(--gold); border-top-color: var(--gold); }
+  .bnav-icon { font-size: 18px; line-height: 1; }
+
+  /* Bottom sheets */
+  .bottom-sheet {
+    position: fixed;
+    bottom: 56px; left: 0; right: 0;
+    background: var(--dark2);
+    border-top: 1px solid var(--bdr2);
+    border-radius: 14px 14px 0 0;
+    z-index: 250;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+    overflow: hidden;
+  }
+  .bottom-sheet.open { transform: translateY(0); }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--bdr2); border-radius: 2px;
+    margin: 10px auto 6px;
+    flex-shrink: 0;
+  }
+  .sheet-title {
+    font-family: var(--title);
+    font-size: 13px; letter-spacing: 2px;
+    color: var(--gold); text-align: center;
+    padding: 0 16px 8px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--bdr);
+    text-transform: uppercase;
+  }
+  .sheet-body {
+    flex: 1;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px;
+  }
+  .sheet-footer { flex-shrink: 0; padding: 8px; border-top: 1px solid var(--bdr); }
+
+  /* Overlay para fechar sheet */
+  #sheet-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 240;
+  }
+  #sheet-overlay.open { display: block; }
+
+  /* Botões flutuantes no canvas */
+  #fab-wrap {
+    display: flex;
+    position: absolute;
+    top: 46px; right: 8px;
+    z-index: 100;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+  }
+  .fab {
+    width: 36px; height: 36px;
+    background: var(--dark2);
+    border: 1px solid var(--bdr2);
+    border-radius: 8px;
+    color: var(--beige);
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: all;
+    box-shadow: 0 2px 8px rgba(0,0,0,.4);
+    cursor: pointer;
+  }
+  .fab:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* Pedal library no sheet: grid 2 colunas */
+  .pedal-item {
+    padding: 7px 10px;
+  }
+  .pedal-thumb { width: 32px; height: 24px; }
+
+  /* Quote no sheet: campos maiores */
+  .form-input, .form-select, .form-textarea {
+    font-size: 14px; padding: 8px 10px;
+  }
+  .btn-calc, .btn-gen-pdf { font-size: 14px; padding: 12px; }
+
+  /* Chain no sheet */
+  .chain-row { padding: 8px; }
+  .chain-nm { font-size: 11px; }
+}
+
+@media (max-width: 900px) {
+  /* Garantir que desktop elements somem */
+  #canvas-toolbar .tb-sep { flex: 1; }
+}
+
+/* Desktop: esconder elementos mobile */
+@media (min-width: 901px) {
+  #bottom-nav { display: none !important; }
+  .bottom-sheet { display: none !important; }
+  #sheet-overlay { display: none !important; }
+  #fab-wrap { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -1039,6 +1860,285 @@ function renderCustomItemEl(inst) {
 
 // ─── INIT ─────────────────────────────────────────────────
 window.addEventListener('load',()=>{renderBoardSurface();loadData();applyI18n();initColorPresets();});
+
+// ═══════════════════════════════════════════════════════
+// MOBILE
+// ═══════════════════════════════════════════════════════
+function isMobile(){ return window.innerWidth <= 900; }
+
+function openSheet(sheetId, btnId){
+  const alreadyOpen = document.getElementById(sheetId).classList.contains('open');
+  closeAllSheets();
+  if(!alreadyOpen){
+    document.getElementById(sheetId).classList.add('open');
+    document.getElementById('sheet-overlay').classList.add('open');
+    if(btnId) document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.toggle('active', b.id===btnId));
+    // Sincronizar listas mobile com as do desktop
+    if(sheetId==='sheet-pedals') syncPedalLibMobile();
+    if(sheetId==='sheet-boards') syncBoardLibMobile();
+    if(sheetId==='sheet-chain') syncChainMobile();
+  }
+}
+
+function closeAllSheets(){
+  document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
+  document.getElementById('sheet-overlay').classList.remove('open');
+  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
+}
+
+function syncPedalLibMobile(){
+  const src = document.getElementById('pedal-lib');
+  const dst = document.getElementById('pedal-lib-mobile');
+  if(src && dst) dst.innerHTML = src.innerHTML;
+  // Re-attach click handlers
+  dst.querySelectorAll('.pedal-item').forEach((el,i)=>{
+    const srcItem = src ? src.querySelectorAll('.pedal-item')[i] : null;
+    el.addEventListener('click',()=>{
+      if(srcItem) srcItem.click();
+      closeAllSheets();
+    });
+  });
+}
+
+function syncBoardLibMobile(){
+  const src = document.getElementById('board-lib');
+  const dst = document.getElementById('board-lib-mobile');
+  if(src && dst) dst.innerHTML = src.innerHTML;
+  dst.querySelectorAll('.board-item').forEach((el,i)=>{
+    const srcItem = src ? src.querySelectorAll('.board-item')[i] : null;
+    el.addEventListener('click',()=>{
+      if(srcItem) srcItem.click();
+      closeAllSheets();
+    });
+  });
+}
+
+function syncChainMobile(){
+  const chain = buildChain();
+  const listEl = document.getElementById('chain-list-mobile');
+  const fullEl = document.getElementById('chain-full-mobile');
+  const totalEl = document.getElementById('chain-total-mobile');
+  listEl.innerHTML = '';
+  if(!chain.length){
+    listEl.innerHTML = '<div class="chain-empty">Conecte os pedais para ver a cadeia.</div>';
+    fullEl.style.display='none'; totalEl.style.display='none'; return;
+  }
+  let totalLen=0;
+  chain.forEach(({inst,connOut},idx)=>{
+    const row=document.createElement('div'); row.className='chain-row';
+    row.innerHTML='<span class="chain-n">'+(idx+1)+'</span><span class="chain-nm">'+inst.brand+' '+inst.name+'</span>'+(connOut?'<span class="chain-len">'+connOut.lenCm+'cm</span>':'');
+    listEl.appendChild(row);
+    if(connOut) totalLen+=connOut.lenCm;
+  });
+  const parts=[i('guitar'),...chain.map(({inst})=>inst.name),i('amp')];
+  fullEl.textContent=parts.join(' → '); fullEl.style.display='block';
+  totalEl.textContent='Total: '+totalLen+'cm · '+conns.length+' cabo(s)'; totalEl.style.display='block';
+}
+
+function calcQuoteMobile(){
+  // Pegar valores dos campos mobile
+  const nm = document.getElementById('f-name-m').value;
+  const cmplx = document.getElementById('f-cmplx-m').value;
+  const hasSrc = document.getElementById('f-src-m').checked;
+  const needUsb = document.getElementById('f-usb-m').checked;
+  const needJack = document.getElementById('f-jack-m').checked;
+  
+  // Sincronizar com campos desktop
+  document.getElementById('f-name').value = nm;
+  document.getElementById('f-cmplx').value = cmplx;
+  document.getElementById('f-src').checked = hasSrc;
+  document.getElementById('f-usb').checked = needUsb;
+  document.getElementById('f-jack').checked = needJack;
+  if(document.getElementById('f-src-info-m').value)
+    document.getElementById('f-src-info').value = document.getElementById('f-src-info-m').value;
+  if(document.getElementById('f-usb-type-m').value)
+    document.getElementById('f-usb-type').value = document.getElementById('f-usb-type-m').value;
+  if(document.getElementById('f-owned-m').value)
+    document.getElementById('f-owned').value = document.getElementById('f-owned-m').value;
+  if(document.getElementById('f-order-m').value)
+    document.getElementById('f-order').value = document.getElementById('f-order-m').value;
+  if(document.getElementById('f-notes-m').value)
+    document.getElementById('f-notes').value = document.getElementById('f-notes-m').value;
+
+  calcQuote();
+  
+  // Mostrar resultado no mobile
+  const src = document.getElementById('q-summary');
+  const dst = document.getElementById('q-summary-mobile');
+  dst.innerHTML = src.innerHTML; dst.style.display='block';
+  document.getElementById('btn-gen-pdf-mobile').style.display='block';
+}
+
+function addCustomPedalMobile(){
+  const name  = document.getElementById('cp-name-m').value.trim() || 'Pedal Custom';
+  const wCm   = parseFloat(document.getElementById('cp-w-m').value) || 12;
+  const hCm   = parseFloat(document.getElementById('cp-h-m').value) || 7;
+  const color = document.getElementById('cp-color-m').value;
+  addPedalToCanvasCustom({Name:name, Brand:'Custom', Width:wCm/INCH_TO_CM, Height:hCm/INCH_TO_CM, customColor:color, isCustom:true});
+  document.getElementById('cp-name-m').value='';
+  document.getElementById('custom-pedal-form-mobile').style.display='none';
+  closeAllSheets();
+}
+
+function applyCustomBoardMobile(){
+  const w = parseFloat(document.getElementById('cust-w-m').value)||60;
+  const h = parseFloat(document.getElementById('cust-h-m').value)||30;
+  board={name:'Custom',w,h};
+  document.querySelectorAll('.board-item').forEach(el=>el.classList.remove('active'));
+  renderBoardSurface();
+  closeAllSheets();
+}
+
+function toggleCustomForm(){
+  const f1 = document.getElementById('custom-pedal-form');
+  const f2 = document.getElementById('custom-pedal-form-mobile');
+  if(f1) f1.classList.toggle('open');
+  if(f2) f2.style.display = f2.style.display==='none'?'block':'none';
+}
+
+// Inicializar presets de cor no mobile também
+function initColorPresets() {
+  [document.getElementById('color-presets'), document.getElementById('color-presets-mobile')].forEach(wrap=>{
+    if(!wrap) return;
+    wrap.innerHTML='';
+    PRESET_COLORS.forEach(color=>{
+      const dot=document.createElement('div'); dot.className='color-dot';
+      dot.style.background=color; dot.title=color;
+      dot.addEventListener('click',()=>{
+        const picker = wrap.id==='color-presets-mobile' ? 'cp-color-m' : 'cp-color';
+        document.getElementById(picker).value=color;
+        wrap.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('sel'));
+        dot.classList.add('sel');
+      });
+      wrap.appendChild(dot);
+    });
+    if(wrap.firstChild) wrap.firstChild.classList.add('sel');
+  });
+}
+
+// Touch: swipe down para fechar sheet
+document.querySelectorAll && document.querySelectorAll('.bottom-sheet').forEach(sheet=>{
+  let startY=0;
+  sheet.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;},{passive:true});
+  sheet.addEventListener('touchend',e=>{
+    const dy=e.changedTouches[0].clientY - startY;
+    if(dy>60) closeAllSheets();
+  },{passive:true});
+});
+
 </script>
+
+<!-- SHEET OVERLAY -->
+<div id="sheet-overlay" onclick="closeAllSheets()"></div>
+
+<!-- FAB (zoom) -->
+<div id="fab-wrap" style="position:fixed;top:54px;right:8px;z-index:200;display:flex;flex-direction:column;gap:6px">
+  <button class="fab" onclick="adjZoom(0.15)" title="+">+</button>
+  <button class="fab" onclick="adjZoom(-0.15)" title="−">−</button>
+  <button class="fab" onclick="adjZoom(0,'reset')" title="Reset">⊙</button>
+</div>
+
+<!-- BOTTOM NAV -->
+<div id="bottom-nav">
+  <button class="bnav-btn" id="bnav-pedals" onclick="openSheet('sheet-pedals','bnav-pedals')">
+    <span class="bnav-icon">🎸</span><span>Pedais</span>
+  </button>
+  <button class="bnav-btn" id="bnav-boards" onclick="openSheet('sheet-boards','bnav-boards')">
+    <span class="bnav-icon">📋</span><span>Board</span>
+  </button>
+  <button class="bnav-btn" id="bnav-chain" onclick="openSheet('sheet-chain','bnav-chain')">
+    <span class="bnav-icon">⚡</span><span>Cadeia</span>
+  </button>
+  <button class="bnav-btn" id="bnav-quote" onclick="openSheet('sheet-quote','bnav-quote')">
+    <span class="bnav-icon">💰</span><span>Orçamento</span>
+  </button>
+</div>
+
+<!-- SHEET: PEDAIS -->
+<div class="bottom-sheet" id="sheet-pedals">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Pedais</div>
+  <div class="sb-search" style="padding:8px;flex-shrink:0">
+    <input type="text" style="width:100%;background:var(--dark3);border:1px solid var(--bdr2);color:var(--beige);font-size:14px;padding:8px 10px;border-radius:6px;outline:none" placeholder="Buscar pedal ou marca..." oninput="filterPedals(this.value)">
+  </div>
+  <div class="sheet-body" id="pedal-lib-mobile"></div>
+  <div class="sheet-footer">
+    <button class="custom-pedal-toggle" onclick="toggleCustomForm()" style="width:100%">+ Adicionar pedal não listado</button>
+    <div class="custom-pedal-form" id="custom-pedal-form-mobile" style="display:none;margin-top:8px">
+      <div class="cp-row">
+        <div style="flex:2"><label class="cp-label">Nome</label><input class="cp-input" id="cp-name-m" type="text" placeholder="Ex: Boss DS-1" style="font-size:14px"></div>
+      </div>
+      <div class="cp-row">
+        <div style="flex:1"><label class="cp-label">Largura (cm)</label><input class="cp-input" id="cp-w-m" type="number" value="12" min="3" max="60" step="0.1" style="font-size:14px"></div>
+        <div style="flex:1"><label class="cp-label">Altura (cm)</label><input class="cp-input" id="cp-h-m" type="number" value="7" min="3" max="40" step="0.1" style="font-size:14px"></div>
+      </div>
+      <label class="cp-label">Cor</label>
+      <div class="color-presets" id="color-presets-mobile"></div>
+      <div class="color-picker-wrap"><input type="color" id="cp-color-m" value="#2a3a2a"><span style="font-size:10px;color:var(--dim)">Cor personalizada</span></div>
+      <button class="btn-add-custom" onclick="addCustomPedalMobile()" style="font-size:14px;padding:12px">Adicionar ao Board</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHEET: BOARDS -->
+<div class="bottom-sheet" id="sheet-boards">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Escolher Board</div>
+  <div class="sb-search" style="padding:8px;flex-shrink:0">
+    <input type="text" style="width:100%;background:var(--dark3);border:1px solid var(--bdr2);color:var(--beige);font-size:14px;padding:8px 10px;border-radius:6px;outline:none" placeholder="Buscar board..." oninput="filterBoards(this.value)">
+  </div>
+  <div class="sheet-body" id="board-lib-mobile"></div>
+  <div class="sheet-footer">
+    <div style="display:flex;gap:6px;margin-bottom:6px">
+      <div style="flex:1"><label class="cp-label">Largura (cm)</label><input class="cp-input" id="cust-w-m" type="number" value="60" min="10" max="300" style="font-size:14px"></div>
+      <div style="flex:1"><label class="cp-label">Profundidade (cm)</label><input class="cp-input" id="cust-h-m" type="number" value="30" min="5" max="200" style="font-size:14px"></div>
+    </div>
+    <button class="btn-block" onclick="applyCustomBoardMobile()" style="font-size:14px;padding:10px">Aplicar Board Personalizado</button>
+  </div>
+</div>
+
+<!-- SHEET: CADEIA -->
+<div class="bottom-sheet" id="sheet-chain">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Cadeia de Sinal</div>
+  <div class="sheet-body">
+    <div id="chain-list-mobile"><div class="chain-empty">Conecte os pedais para ver a cadeia.</div></div>
+    <div class="chain-full" id="chain-full-mobile" style="display:none;margin-top:10px"></div>
+    <div class="chain-total" id="chain-total-mobile" style="display:none;margin-top:6px;text-align:right;font-size:11px;color:var(--gold)"></div>
+  </div>
+</div>
+
+<!-- SHEET: ORÇAMENTO -->
+<div class="bottom-sheet" id="sheet-quote">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Orçamento</div>
+  <div class="sheet-body">
+    <div class="sec-title" style="margin-top:0">Cliente</div>
+    <input class="form-input" id="f-name-m" type="text" placeholder="Nome do cliente" style="font-size:14px;margin-bottom:8px">
+    <div class="sec-title">Tipo de Montagem</div>
+    <select class="form-select" id="f-cmplx-m" style="font-size:14px;margin-bottom:8px">
+      <option value="simple">Simples — In/Out (R$80/equip)</option>
+      <option value="medium">Média — Send/Return (R$100/equip)</option>
+      <option value="complex">Complexa — MIDI/USB (R$120/equip)</option>
+    </select>
+    <div class="sec-title">Equipamentos</div>
+    <div class="chk-row"><input type="checkbox" id="f-src-m" onchange="toggleSub('sub-src-m',this.checked)"><label for="f-src-m" class="chk-label" style="font-size:13px">Cliente possui fonte de alimentação?</label></div>
+    <div class="sub-field hidden" id="sub-src-m"><input class="form-input" id="f-src-info-m" type="text" placeholder="Modelo da fonte..." style="font-size:14px"></div>
+    <div class="chk-row"><input type="checkbox" id="f-usb-m" onchange="toggleSub('sub-usb-m',this.checked)"><label for="f-usb-m" class="chk-label" style="font-size:13px">Vai precisar de cabo USB?</label></div>
+    <div class="sub-field hidden" id="sub-usb-m">
+      <input class="form-input" id="f-usb-type-m" type="text" placeholder="Tipo: C, Micro-USB, etc." style="font-size:14px">
+      <div class="chk-row" style="margin-top:6px"><input type="checkbox" id="f-jack-m"><label for="f-jack-m" class="chk-label" style="font-size:13px">Jack fêmea USB no painel?</label></div>
+    </div>
+    <div class="sec-title">Itens que o cliente já possui</div>
+    <textarea class="form-textarea" id="f-owned-m" placeholder="Ex: Fonte Mosky ISO-10..." style="font-size:13px;min-height:60px"></textarea>
+    <div class="sec-title">Itens a comprar / orçar</div>
+    <textarea class="form-textarea" id="f-order-m" placeholder="Ex: Cabos patch, fonte..." style="font-size:13px;min-height:60px"></textarea>
+    <div class="sec-title">Observações</div>
+    <textarea class="form-textarea" id="f-notes-m" placeholder="Observações gerais..." style="font-size:13px;min-height:60px"></textarea>
+    <button class="btn-calc" onclick="calcQuoteMobile()" style="font-size:14px;padding:12px;margin-top:12px">Calcular Orçamento</button>
+    <div class="q-summary" id="q-summary-mobile" style="display:none;margin-top:10px"></div>
+    <button class="btn-gen-pdf" id="btn-gen-pdf-mobile" onclick="openPDF()" style="display:none;font-size:14px;padding:12px">Gerar PDF</button>
+  </div>
+</div>
 </body>
 </html>
