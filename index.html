@@ -30,9 +30,10 @@ input,select,textarea{font-family:var(--sans);outline:none}
 
 /* HEADER */
 #hdr{height:52px;flex-shrink:0;background:var(--dark2);border-bottom:1px solid var(--bdr2);display:flex;align-items:center;padding:0 16px;gap:12px;z-index:200}
-.logo-img{height:32px;opacity:.95}
-.logo-sep{width:1px;height:28px;background:var(--bdr)}
-.logo-text{font-family:var(--title);font-size:15px;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
+.duck-icon{height:36px;width:36px;object-fit:contain;filter:brightness(0) saturate(100%) invert(82%) sepia(30%) saturate(500%) hue-rotate(5deg) brightness(95%);flex-shrink:0}
+.hdr-brand{display:flex;flex-direction:column;justify-content:center;line-height:1}
+.hdr-brand-name{font-family:var(--title);font-size:18px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+.hdr-brand-sub{font-size:8px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin-top:1px}
 .hdr-gap{flex:1}
 .lang-wrap{display:flex;gap:2px}
 .lang-btn{background:var(--dark3);border:1px solid var(--bdr);color:var(--dim);font-family:var(--title);font-size:13px;letter-spacing:1px;padding:3px 10px;border-radius:2px;transition:all .12s}
@@ -71,6 +72,23 @@ input,select,textarea{font-family:var(--sans);outline:none}
 .pedal-name-li{font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pedal-dims-li{font-size:8px;color:var(--dim);margin-top:1px}
 #pedal-count{font-size:9px;color:var(--dim);padding:5px 10px;text-align:center}
+/* Custom pedal */
+.custom-pedal-section{border-top:1px solid var(--bdr);padding:10px;flex-shrink:0}
+.custom-pedal-toggle{width:100%;background:none;border:1px dashed var(--bdr2);color:var(--dim);font-size:10px;font-family:var(--title);letter-spacing:1px;padding:6px;border-radius:2px;text-align:center;transition:all .12s}
+.custom-pedal-toggle:hover{border-color:var(--gold);color:var(--gold)}
+.custom-pedal-form{display:none;margin-top:8px}
+.custom-pedal-form.open{display:block}
+.cp-row{display:flex;gap:6px;margin-bottom:6px}
+.cp-input{flex:1;background:var(--dark3);border:1px solid var(--bdr2);color:var(--beige);font-size:11px;padding:4px 7px;border-radius:2px}
+.cp-input:focus{border-color:var(--gold);outline:none}
+.cp-label{font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:2px}
+.color-presets{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.color-dot{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .1s;flex-shrink:0}
+.color-dot:hover,.color-dot.sel{border-color:var(--gold);transform:scale(1.2)}
+.color-picker-wrap{display:flex;align-items:center;gap:6px}
+.color-picker-wrap input[type=color]{width:30px;height:24px;border:1px solid var(--bdr2);border-radius:2px;background:none;cursor:pointer;padding:1px}
+.btn-add-custom{width:100%;padding:7px;background:var(--gold);color:var(--dark);border:none;font-family:var(--title);font-size:12px;letter-spacing:2px;border-radius:2px;margin-top:4px}
+.btn-add-custom:hover{background:var(--gold2)}
 
 /* Board list */
 .board-item{padding:8px 11px;border-bottom:1px solid var(--bdr);cursor:pointer;transition:background .1s}
@@ -242,9 +260,11 @@ input,select,textarea{font-family:var(--sans);outline:none}
 <body>
 
 <div id="hdr">
-  <img src="assets/logo-gold.png" class="logo-img" alt="DuckTone" onerror="this.style.display='none'">
-  <div class="logo-sep"></div>
-  <div class="logo-text" data-i="boardPlanner">Board Planner</div>
+  <img src="assets/duck-icon.png" class="duck-icon" alt="DuckTone" onerror="this.style.display='none'">
+  <div class="hdr-brand">
+    <span class="hdr-brand-name">DuckTone</span>
+    <span class="hdr-brand-sub">Board Planner</span>
+  </div>
   <div class="hdr-gap"></div>
   <div class="lang-wrap">
     <button class="lang-btn active" onclick="setLang('pt')">PT</button>
@@ -264,6 +284,34 @@ input,select,textarea{font-family:var(--sans);outline:none}
       <div class="sb-search"><input type="text" id="pedal-search" placeholder="Buscar pedal ou marca..." oninput="filterPedals(this.value)"></div>
       <div class="sb-body" id="pedal-lib"></div>
       <div id="pedal-count"></div>
+    <!-- CUSTOM PEDAL -->
+    <div class="custom-pedal-section">
+      <button class="custom-pedal-toggle" onclick="toggleCustomForm()">+ Adicionar pedal não listado</button>
+      <div class="custom-pedal-form" id="custom-pedal-form">
+        <div class="cp-row">
+          <div style="flex:2">
+            <label class="cp-label">Nome do pedal</label>
+            <input class="cp-input" id="cp-name" type="text" placeholder="Ex: Boss DS-1">
+          </div>
+        </div>
+        <div class="cp-row">
+          <div style="flex:1">
+            <label class="cp-label">Largura (cm)</label>
+            <input class="cp-input" id="cp-w" type="number" value="12" min="3" max="60" step="0.1">
+          </div>
+          <div style="flex:1">
+            <label class="cp-label">Altura (cm)</label>
+            <input class="cp-input" id="cp-h" type="number" value="7" min="3" max="40" step="0.1">
+          </div>
+        </div>
+        <label class="cp-label">Cor do pedal</label>
+        <div class="color-presets" id="color-presets"></div>
+        <div class="color-picker-wrap">
+          <input type="color" id="cp-color" value="#2a3a2a">
+          <span style="font-size:9px;color:var(--dim)">Cor personalizada</span>
+        </div>
+        <button class="btn-add-custom" onclick="addCustomPedal()">Adicionar ao Board</button>
+      </div>
     </div>
     <div class="sb-pane hidden" id="pane-boards">
       <div class="sb-search"><input type="text" id="board-search" placeholder="Buscar board..." oninput="filterBoards(this.value)"></div>
@@ -777,9 +825,29 @@ async function openPDF(){
   const q=quote||{};const cmplxLabels={simple:'Simples',medium:'Média',complex:'Complexa'};
   let boardImg='';
   try{
-    const snap=await html2canvas(document.getElementById('canvas'),{backgroundColor:'#1a1510',scale:1.5,useCORS:true,logging:false});
-    boardImg=snap.toDataURL('image/png');
-  }catch(e){console.warn(e);}
+    // Esconder imagens externas antes de capturar (evita CORS)
+    const extImgs = document.querySelectorAll('#canvas img');
+    extImgs.forEach(img => { img.dataset.origSrc = img.src; img.src = ''; });
+    await new Promise(r => setTimeout(r, 50));
+    const snap = await html2canvas(document.getElementById('canvas'), {
+      backgroundColor:'#1a1510', scale:1.5,
+      useCORS:true, allowTaint:true, logging:false,
+      ignoreElements: el => el.tagName === 'IMG' && el.closest('#board-watermark')
+    });
+    boardImg = snap.toDataURL('image/png');
+    // Restaurar imagens
+    extImgs.forEach(img => { img.src = img.dataset.origSrc || ''; });
+  }catch(e){
+    console.warn('Canvas capture:', e);
+    // Fallback: captura simples sem imagens
+    try {
+      const snap = await html2canvas(document.getElementById('canvas'), {
+        backgroundColor:'#1a1510', scale:1, logging:false,
+        ignoreElements: el => el.tagName === 'IMG'
+      });
+      boardImg = snap.toDataURL('image/png');
+    } catch(e2) { console.warn('Fallback capture failed:', e2); }
+  }
   const pedalRows=items.map((it,idx)=>'<tr><td>'+(idx+1)+'</td><td>'+it.brand+'</td><td>'+it.name+'</td><td>'+inToCm(it.wIn)+'×'+inToCm(it.hIn)+'cm</td></tr>').join('');
   const psuInfo=document.getElementById('f-src-info').value;
   const usbType=document.getElementById('f-usb-type').value;
@@ -858,8 +926,117 @@ document.getElementById('canvas').addEventListener('click',e=>{
 });
 document.addEventListener('click',()=>hideCtxMenu());
 
+// ─── CUSTOM PEDAL ────────────────────────────────────────────
+const PRESET_COLORS = [
+  '#1a1a2e','#16213e','#0f3460','#1b4332','#2d6a4f',
+  '#6b2d8b','#922b21','#b7410e','#c67c26','#1a1a1a',
+  '#2c2c2c','#4a4a4a','#7d6608','#145a32','#1a5276',
+  '#512e5f','#4a235a','#784212','#1b2631','#2e86c1',
+];
+
+function initColorPresets() {
+  const wrap = document.getElementById('color-presets');
+  if (!wrap) return;
+  PRESET_COLORS.forEach(color => {
+    const dot = document.createElement('div');
+    dot.className = 'color-dot';
+    dot.style.background = color;
+    dot.title = color;
+    dot.addEventListener('click', () => {
+      document.getElementById('cp-color').value = color;
+      document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('sel'));
+      dot.classList.add('sel');
+    });
+    wrap.appendChild(dot);
+  });
+  // Selecionar primeiro
+  wrap.firstChild && wrap.firstChild.classList.add('sel');
+}
+
+function toggleCustomForm() {
+  const form = document.getElementById('custom-pedal-form');
+  form.classList.toggle('open');
+}
+
+function addCustomPedal() {
+  const name  = document.getElementById('cp-name').value.trim() || 'Pedal Custom';
+  const wCm   = parseFloat(document.getElementById('cp-w').value) || 12;
+  const hCm   = parseFloat(document.getElementById('cp-h').value) || 7;
+  const color = document.getElementById('cp-color').value;
+  
+  // Converter cm para inches para manter consistência
+  const wIn = wCm / INCH_TO_CM;
+  const hIn = hCm / INCH_TO_CM;
+  
+  const fakePedal = {
+    Name: name,
+    Brand: 'Custom',
+    Width: wIn,
+    Height: hIn,
+    Image: null,
+    customColor: color,
+    isCustom: true,
+  };
+  
+  addPedalToCanvasCustom(fakePedal);
+  
+  // Fechar form e limpar nome
+  document.getElementById('cp-name').value = '';
+  document.getElementById('custom-pedal-form').classList.remove('open');
+}
+
+function addPedalToCanvasCustom(p) {
+  const id = uid();
+  const wPx = inToPx(p.Width);
+  const hPx = inToPx(p.Height);
+  const canvasW = cmToPx(board.w);
+  const canvasH = cmToPx(board.h);
+  const x = Math.min(canvasW - wPx, 20 + Math.random() * (canvasW * .4));
+  const y = Math.min(canvasH - hPx, 20 + Math.random() * (canvasH * .35));
+  const inst = { id, name: p.Name, brand: 'Custom', image: null, wIn: p.Width, hIn: p.Height, x, y, rot: 0, draggabilly: null, customColor: p.customColor };
+  items.push(inst);
+  renderCustomItemEl(inst);
+  renderChain();
+}
+
+function renderCustomItemEl(inst) {
+  const canvas = document.getElementById('canvas');
+  const wPx = inToPx(inst.wIn);
+  const hPx = inToPx(inst.hIn);
+  const el = document.createElement('div');
+  el.className = 'c-item';
+  el.id = 'item-' + inst.id;
+  el.style.cssText = 'left:' + inst.x + 'px;top:' + inst.y + 'px;width:' + wPx + 'px;height:' + hPx + 'px;';
+  const fs = Math.max(7, Math.min(13, wPx / 7));
+  el.innerHTML = `
+    <div class="artwork" style="width:${wPx}px;height:${hPx}px;background:${inst.customColor};border-radius:3px;border:1px solid rgba(255,255,255,.15)">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;text-align:center">
+        <div style="font-family:var(--title);font-size:${fs}px;font-weight:700;color:rgba(255,255,255,.9);line-height:1.1;letter-spacing:.5px">${inst.name}</div>
+        <div style="font-size:${Math.max(6,fs-3)}px;color:rgba(255,255,255,.4);margin-top:2px">CUSTOM</div>
+      </div>
+    </div>
+    <div class="anchors">
+      <div class="anchor anc-l" data-id="${inst.id}" data-ax="0" data-ay="0.5"></div>
+      <div class="anchor anc-r" data-id="${inst.id}" data-ax="1" data-ay="0.5"></div>
+      <div class="anchor anc-t" data-id="${inst.id}" data-ax="0.5" data-ay="0"></div>
+      <div class="anchor anc-b" data-id="${inst.id}" data-ax="0.5" data-ay="1"></div>
+      <div class="anchor anc-tl" data-id="${inst.id}" data-ax="0" data-ay="0"></div>
+      <div class="anchor anc-tr" data-id="${inst.id}" data-ax="1" data-ay="0"></div>
+      <div class="anchor anc-bl" data-id="${inst.id}" data-ax="0" data-ay="1"></div>
+      <div class="anchor anc-br" data-id="${inst.id}" data-ax="1" data-ay="1"></div>
+    </div>`;
+  el.querySelectorAll('.anchor').forEach(a => {
+    a.addEventListener('mousedown', ev => { ev.stopPropagation(); startConn(inst.id, parseFloat(a.dataset.ax), parseFloat(a.dataset.ay)); });
+    a.addEventListener('click', ev => { ev.stopPropagation(); if (connFrom && connFrom.id !== inst.id) completeConn(inst.id, parseFloat(a.dataset.ax), parseFloat(a.dataset.ay)); });
+  });
+  el.addEventListener('click', ev => { ev.stopPropagation(); selectItem(inst.id); });
+  el.addEventListener('contextmenu', ev => { ev.preventDefault(); ev.stopPropagation(); selectItem(inst.id); showCtxMenu(ev.clientX, ev.clientY); });
+  canvas.appendChild(el);
+  initDraggable(el, inst);
+}
+
 // ─── INIT ─────────────────────────────────────────────────
-window.addEventListener('load',()=>{renderBoardSurface();loadData();applyI18n();});
+window.addEventListener('load',()=>{renderBoardSurface();loadData();applyI18n();initColorPresets();});
 </script>
 </body>
 </html>
