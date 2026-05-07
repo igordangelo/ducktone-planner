@@ -22,9 +22,11 @@
 }
 html,body{height:100%;overflow:hidden;background:var(--dark)}
 body{font-family:var(--sans);color:var(--beige);display:flex;flex-direction:column}
-::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar{width:0;height:0}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+::-webkit-scrollbar-thumb{background:transparent}
+/* Firefox */
+*{scrollbar-width:none}
 button{cursor:pointer;font-family:var(--sans)}
 input,select,textarea{font-family:var(--sans);outline:none}
 
@@ -47,16 +49,16 @@ input,select,textarea{font-family:var(--sans);outline:none}
 #main{flex:1;display:flex;min-height:0}
 
 /* LEFT SIDEBAR */
-#lsb{width:240px;flex-shrink:0;background:var(--dark2);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden}
+#lsb{width:240px;flex-shrink:0;background:var(--dark2);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;height:100%}
 .sb-tabs{display:flex;border-bottom:1px solid var(--bdr);flex-shrink:0}
 .sb-tab{flex:1;padding:8px 4px;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);font-family:var(--title);font-size:13px;letter-spacing:1px;text-transform:uppercase;transition:all .12s}
 .sb-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
 .sb-search{padding:8px;border-bottom:1px solid var(--bdr);flex-shrink:0}
 .sb-search input{width:100%;background:var(--dark3);border:1px solid var(--bdr2);color:var(--beige);font-size:12px;padding:5px 9px;border-radius:2px}
 .sb-search input::placeholder{color:var(--dim)}
-.sb-body{flex:1;overflow-y:scroll;min-height:0}
-.sb-pane{flex:1;display:flex;flex-direction:column}
-.sb-pane.hidden{display:none}
+.sb-body{flex:1;overflow-y:scroll;min-height:0;-webkit-overflow-scrolling:touch}
+.sb-pane{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.sb-pane.hidden{display:none!important}
 
 /* Pedal library */
 .brand-group{border-bottom:1px solid rgba(216,176,122,.07)}
@@ -73,7 +75,7 @@ input,select,textarea{font-family:var(--sans);outline:none}
 .pedal-dims-li{font-size:8px;color:var(--dim);margin-top:1px}
 #pedal-count{font-size:9px;color:var(--dim);padding:5px 10px;text-align:center}
 /* Custom pedal */
-.custom-pedal-section{border-top:1px solid var(--bdr);padding:10px;flex-shrink:0}
+.custom-pedal-section{border-top:1px solid var(--bdr);padding:10px;flex-shrink:0;background:var(--dark2)}
 .custom-pedal-toggle{width:100%;background:none;border:1px dashed var(--bdr2);color:var(--dim);font-size:10px;font-family:var(--title);letter-spacing:1px;padding:6px;border-radius:2px;text-align:center;transition:all .12s}
 .custom-pedal-toggle:hover{border-color:var(--gold);color:var(--gold)}
 .custom-pedal-form{display:none;margin-top:8px}
@@ -192,8 +194,8 @@ input,select,textarea{font-family:var(--sans);outline:none}
 
 /* RIGHT PANEL */
 #rpanel{width:292px;flex-shrink:0;background:var(--dark2);border-left:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden}
-.rpane{flex:1;overflow-y:scroll;padding:12px;min-height:0}
-.rpane.hidden{display:none}
+.rpane{flex:1;overflow-y:scroll;padding:12px;min-height:0;-webkit-overflow-scrolling:touch}
+.rpane.hidden{display:none!important}
 .sec-title{font-family:var(--title);font-size:12px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;padding-bottom:5px;border-bottom:1px solid var(--bdr);margin:14px 0 8px}
 .sec-title:first-child{margin-top:0}
 
@@ -316,7 +318,7 @@ input,select,textarea{font-family:var(--sans);outline:none}
     <div class="sb-pane hidden" id="pane-boards">
       <div class="sb-search"><input type="text" id="board-search" placeholder="Buscar board..." oninput="filterBoards(this.value)"></div>
       <div class="sb-body" id="board-lib"></div>
-      <div class="custom-board-form">
+      <div class="custom-board-form" style="flex-shrink:0;background:var(--dark2)">
         <label data-i="customW">Largura (cm)</label>
         <input type="number" id="cust-w" value="60" min="10" max="300">
         <label data-i="customH">Profundidade (cm)</label>
