@@ -1376,8 +1376,18 @@ function addPedalToCanvas(p){
   const id=uid();
   const wPx=inToPx(p.Width);const hPx=inToPx(p.Height);
   const canvasW=cmToPx(board.w);const canvasH=cmToPx(board.h);
-  const x=Math.min(canvasW-wPx,20+Math.random()*(canvasW*.4));
-  const y=Math.min(canvasH-hPx,20+Math.random()*(canvasH*.35));
+  // Centro da área visível do canvas (funciona em desktop e mobile)
+  const viewport = document.getElementById('canvas-viewport');
+  const scrollX = viewport ? viewport.scrollLeft : 0;
+  const scrollY = viewport ? viewport.scrollTop : 0;
+  const vpW = viewport ? viewport.clientWidth : canvasW;
+  const vpH = viewport ? viewport.clientHeight : canvasH;
+  const centerX = Math.max(0, Math.min(canvasW - wPx, scrollX + (vpW - wPx) / 2));
+  const centerY = Math.max(0, Math.min(canvasH - hPx, scrollY + (vpH - hPx) / 2));
+  // Pequeno offset aleatório pra não empilhar pedais no mesmo lugar
+  const jitter = () => (Math.random() - 0.5) * 40;
+  const x = Math.max(0, Math.min(canvasW - wPx, centerX + jitter()));
+  const y = Math.max(0, Math.min(canvasH - hPx, centerY + jitter()));
   const inst={id,name:p.Name,brand:p.Brand,image:p.Image,wIn:p.Width,hIn:p.Height,x,y,rot:0,draggabilly:null};
   items.push(inst);renderItemEl(inst);renderChain();
 }
@@ -1814,8 +1824,16 @@ function addPedalToCanvasCustom(p) {
   const hPx = inToPx(p.Height);
   const canvasW = cmToPx(board.w);
   const canvasH = cmToPx(board.h);
-  const x = Math.min(canvasW - wPx, 20 + Math.random() * (canvasW * .4));
-  const y = Math.min(canvasH - hPx, 20 + Math.random() * (canvasH * .35));
+  const viewport = document.getElementById('canvas-viewport');
+  const scrollX = viewport ? viewport.scrollLeft : 0;
+  const scrollY = viewport ? viewport.scrollTop : 0;
+  const vpW = viewport ? viewport.clientWidth : canvasW;
+  const vpH = viewport ? viewport.clientHeight : canvasH;
+  const centerX = Math.max(0, Math.min(canvasW - wPx, scrollX + (vpW - wPx) / 2));
+  const centerY = Math.max(0, Math.min(canvasH - hPx, scrollY + (vpH - hPx) / 2));
+  const jitter = () => (Math.random() - 0.5) * 40;
+  const x = Math.max(0, Math.min(canvasW - wPx, centerX + jitter()));
+  const y = Math.max(0, Math.min(canvasH - hPx, centerY + jitter()));
   const inst = { id, name: p.Name, brand: 'Custom', image: null, wIn: p.Width, hIn: p.Height, x, y, rot: 0, draggabilly: null, customColor: p.customColor };
   items.push(inst);
   renderCustomItemEl(inst);
